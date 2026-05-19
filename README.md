@@ -1,33 +1,85 @@
 # AI 口语·作文教练
 
-基于 Vue 3 + FastAPI 的 AI 英语学习应用，提供口语对话练习、作文批改、全真模考和专项提升功能。
+基于人工智能的英语学习应用，提供口语陪练、作文批改、全真模考、专项训练等功能。
 
 ## 技术栈
 
-### 前端
-- **框架**: Vue 3 + Vite
-- **路由**: Vue Router 4
-- **状态管理**: Pinia
-- **UI 组件**: Vant 4（移动端）
-- **HTTP 客户端**: Axios
+- **前端**：Vue 3 + Vant 4 + Pinia + Vue Router
+- **后端**：FastAPI + SQLAlchemy + SQLite
+- **AI 对话**：DeepSeek API（OpenAI 兼容接口）
+- **语音识别（STT）**：faster-whisper 本地模型（离线运行）
+- **语音合成（TTS）**：pyttsx3 本地引擎（离线运行）
 
-### 后端
-- **框架**: FastAPI
-- **数据库**: SQLite（开发）/ PostgreSQL（生产）
-- **认证**: JWT Token
-- **AI 服务**: OpenAI API（可替换为任意兼容接口）
-- **ORM**: SQLAlchemy
+## 项目结构
+
+```
+├── frontend/          # Vue 3 前端
+│   ├── src/
+│   │   ├── views/     # 页面组件
+│   │   ├── stores/    # Pinia 状态管理
+│   │   ├── api/       # API 接口
+│   │   └── styles/    # 全局样式
+│   └── vite.config.js
+├── backend/           # FastAPI 后端
+│   ├── app/
+│   │   ├── routers/   # API 路由
+│   │   ├── ai_service.py    # AI 对话服务
+│   │   ├── tts_service.py   # 语音合成服务
+│   │   ├── stt_service.py   # 语音识别服务
+│   │   ├── stats_service.py # 数据统计服务
+│   │   ├── models.py        # 数据库模型
+│   │   └── config.py        # 配置
+│   ├── models/
+│   │   └── whisper-small/   # Whisper 语音识别模型
+│   └── requirements.txt
+└── README.md
+```
+
+## 功能模块
+
+### 口语陪练
+- 语音对话：录音 → Whisper 识别 → DeepSeek 回复 → TTS 语音播放
+- 6 种场景：自由对话、职场面试、雅思模考、旅行出行、商务谈判、校园生活
+- 实时评分：发音、语法、词汇、流利度四维评分
+- 对话历史：每个场景独立保存，支持查看历史记录和新建对话
+- 录音确认：录音后可试听、取消或发送
+
+### 作文批改
+- 自由输入题目或拍照识别（需支持 vision 的模型）
+- 题目可选，留空则进行综合批改
+- 快速/深度两种批改模式
+- 多维度评分 + 批注预览 + 优化方案
+
+### 全真模考
+- 支持雅思、托福、四六级、高考、考研
+- 多 Part 流程，每个 Part 独立题目
+- 录音 + Whisper 自动转写
+- AI 综合评分和点评
+- 历史记录查看
+
+### 专项训练
+- 发音专项：标准发音播放 + 录音跟读 + 发音评估
+- 语法专项：填空、改错、时态等练习
+- 词汇专项：同义替换、搭配、高级表达
+- 逻辑专项：论据补充、反驳、段落组织
+- 本地题库随机抽取，提交答案时 AI 评判
+
+### 学习报告
+- 六维能力雷达图
+- 学习时长统计（本周/本月/本年）
+- 评分趋势
+- 学习成就
+- AI 数据洞察
 
 ## 快速开始
 
-### 1. 克隆项目
+### 环境要求
 
-```bash
-git clone <repository-url>
-cd AIspoken
-```
+- Python 3.10+
+- Node.js 18+
+- DeepSeek API Key
 
-### 2. 后端设置
+### 1. 后端设置
 
 ```bash
 cd backend
@@ -37,223 +89,90 @@ pip install -r requirements.txt
 
 # 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，填写 OPENAI_API_KEY 等配置
+# 编辑 .env，填入你的 DeepSeek API Key
+```
 
-# 启动后端（自动创建数据库）
+### 2. 下载 Whisper 模型
+
+从 https://huggingface.co/Systran/faster-whisper-small/tree/main 下载以下文件到 `backend/models/whisper-small/` 目录：
+
+- `config.json`
+- `model.bin`（484 MB）
+- `tokenizer.json`
+- `vocabulary.txt`
+
+### 3. 启动后端
+
+```bash
+cd backend
 python run.py
 ```
 
-后端将运行在 `http://localhost:8000`
-- API 文档: http://localhost:8000/docs
-- 健康检查: http://localhost:8000/health
+后端运行在 http://localhost:8000
 
-### 3. 前端设置
+### 4. 前端设置
 
 ```bash
 cd frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-前端将运行在 `http://localhost:5173`
-
-### 4. 访问应用
-
-打开浏览器访问 `http://localhost:5173`
-
-**演示账号**（如果未配置 AI，将返回模拟数据）：
-- 用户名: `demo`
-- 密码: `demo123`
-
-或直接注册新账号。
-
-## 项目结构
-
-```
-AIspoken/
-├── backend/                 # FastAPI 后端
-│   ├── app/
-│   │   ├── routers/        # API 路由
-│   │   ├── models.py       # 数据库模型
-│   │   ├── schemas.py      # Pydantic 模型
-│   │   ├── auth.py         # JWT 认证
-│   │   ├── ai_service.py   # AI 服务封装
-│   │   ├── database.py     # 数据库连接
-│   │   ├── config.py       # 配置管理
-│   │   └── main.py         # 应用入口
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── run.py
-│
-├── frontend/                # Vue 3 前端
-│   ├── src/
-│   │   ├── views/          # 页面组件
-│   │   ├── layouts/        # 布局组件
-│   │   ├── stores/         # Pinia 状态管理
-│   │   ├── api/            # API 封装
-│   │   ├── router/         # 路由配置
-│   │   ├── styles/         # 全局样式
-│   │   ├── App.vue
-│   │   └── main.js
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-│
-├── ai-coach/                # 原型（纯前端版本）
-└── README.md
-```
-
-## 功能模块
-
-### 1. 用户认证
-- 注册 / 登录（JWT Token）
-- 用户信息管理
-- VIP 会员状态
-
-### 2. 口语教练
-- 6 种场景对话（自由对话、职场面试、雅思模考等）
-- AI 实时纠错与建议
-- 语音录音模拟（前端）
-- 实时评分（发音、语法、词汇、流利度）
-
-### 3. 作文批改
-- 快速 / 深度批改模式
-- 四维评分（任务回应、连贯衔接、词汇资源、语法多样）
-- 逐句批注（错误、警告、优秀表达）
-- AI 优化版本生成
-
-### 4. 学习报告
-- 六维能力雷达图
-- 学习时长柱状图
-- 口语 / 作文评分趋势
-- 错题本管理
-- 成就徽章系统
-- AI 个性化建议
-
-### 5. 全真模考
-- 5 种考试类型（雅思、托福、四六级、高考、考研）
-- 倒计时计时器
-- AI 评分与点评
-- 历史记录查询
-
-### 6. 专项提升
-- 4 大专项（发音、语法、词汇、逻辑）
-- 发音练习子模块
-- 每日一练
-- 精品课程推荐
-
-### 7. 个人中心
-- 用户数据统计
-- VIP 会员管理
-- 学习目标设置
-- 邀请好友
-- 常规设置
+前端运行在 http://localhost:5173
 
 ## 环境变量说明
 
-### 后端 `.env`
-
 ```env
-# JWT 密钥（生产环境务必修改）
-SECRET_KEY=your-secret-key-change-this-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=10080
+# DeepSeek API（必填）
+OPENAI_API_KEY=sk-你的密钥
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+OPENAI_MODEL=deepseek-chat
 
 # 数据库
 DATABASE_URL=sqlite:///./ai_coach.db
 
-# OpenAI API（可替换为任意兼容接口）
-OPENAI_API_KEY=sk-your-api-key
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
+# JWT 密钥
+SECRET_KEY=你的密钥
 
-# CORS 允许的前端地址
+# CORS
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
-**未配置 AI 时的行为**：
-- 如果 `OPENAI_API_KEY` 为 `sk-placeholder` 或空，AI 服务将返回模拟数据
-- 适合本地开发和演示
+## 部署说明
 
-## API 文档
+### 服务器要求
+- 2 核 4GB+ 内存（Whisper 模型需要约 1.5GB）
+- HTTPS（手机浏览器录音必须）
 
-启动后端后访问 `http://localhost:8000/docs` 查看完整 API 文档（Swagger UI）。
+### Linux 部署注意
+- TTS 需要切换为 Edge TTS（`pyttsx3` 依赖 Windows/macOS 系统语音）
+- 修改 `tts_service.py` 使用 `edge-tts` 库
+- 服务器通常能正常访问微软 TTS 服务
 
-### 主要端点
+### 推荐架构
+```
+Nginx (HTTPS + 静态文件)
+  ├── / → frontend/dist 静态文件
+  └── /api → 反向代理到 FastAPI (uvicorn)
+```
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/auth/register` | POST | 用户注册 |
-| `/api/auth/login` | POST | 用户登录 |
-| `/api/auth/me` | GET | 获取当前用户信息 |
-| `/api/speak/chat` | POST | 口语对话 |
-| `/api/speak/scenes` | GET | 获取场景列表 |
-| `/api/write/topics` | GET | 获取作文题目 |
-| `/api/write/correct` | POST | 作文批改 |
-| `/api/exam/types` | GET | 获取考试类型 |
-| `/api/exam/result` | POST | 提交模考结果 |
-| `/api/report` | GET | 获取学习报告 |
-| `/api/report/error-book` | GET | 获取错题本 |
+## 浏览器兼容性
 
-## 部署
+| 功能 | Chrome | Edge | Firefox | Safari | 手机浏览器 |
+|------|--------|------|---------|--------|-----------|
+| 录音 | ✅ | ✅ | ✅ | ✅ iOS 14.5+ | ✅ |
+| 音频播放 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 基本功能 | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-### 后端部署
+## 开发命令
 
 ```bash
-# 安装依赖
-pip install -r requirements.txt
+# 前端开发
+cd frontend && npm run dev
 
-# 设置环境变量
-export SECRET_KEY="your-production-secret-key"
-export DATABASE_URL="postgresql://user:pass@host:5432/dbname"
-export OPENAI_API_KEY="sk-your-real-api-key"
+# 前端构建
+cd frontend && npm run build
 
-# 启动（生产环境）
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+# 后端开发（热重载）
+cd backend && python run.py
 ```
-
-### 前端部署
-
-```bash
-# 构建生产版本
-npm run build
-
-# dist/ 目录可部署到任意静态托管服务
-# 如 Vercel、Netlify、Nginx 等
-```
-
-## 开发指南
-
-### 添加新的 AI 功能
-
-1. 在 `backend/app/ai_service.py` 中添加新函数
-2. 在 `backend/app/routers/` 中创建对应路由
-3. 在 `frontend/src/api/index.js` 中添加 API 调用
-4. 在 `frontend/src/stores/` 中添加状态管理
-5. 在 `frontend/src/views/` 中创建页面组件
-
-### 切换 AI 服务提供商
-
-修改 `backend/.env` 中的 `OPENAI_BASE_URL` 和 `OPENAI_MODEL`：
-
-```env
-# 使用 Azure OpenAI
-OPENAI_BASE_URL=https://your-resource.openai.azure.com/
-OPENAI_MODEL=gpt-4
-
-# 使用国内服务（如通义千问、文心一言等兼容 OpenAI 格式的服务）
-OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-OPENAI_MODEL=qwen-plus
-```
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
