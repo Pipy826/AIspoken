@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Environment files
+.env
+backend/.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Build output
+frontend/dist/
+
+# IDE
+.vscode/
+
+# Database
+*.db
+
+# Models (large files)
+backend/models/whisper-small/model.bin
+
+# OS files
+.DS_Store
+Thumbs.db

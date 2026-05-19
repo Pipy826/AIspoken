@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>AI口语·作文教练 - 高保真原型 v2</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/font/lucide.min.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#e9ecf2;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+:root{--p:#4A6CF7;--pl:#7c9bf7;--pd:#3a5ce7;--bg:#f7f8fc;--bm:#e9ecf2;--t1:#1c1c1e;--t2:#6c6c70;--t3:#8e8e93;--bd:#f0f0f2;--r:16px;--green:#34c759;--orange:#ff9500;--red:#ff3b30;--purple:#af52de}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:44px;box-shadow:0 30px 80px rgba(0,0,0,.2),0 0 0 8px #e0e3ea;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.sbar{height:44px;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 28px;font-size:13px;font-weight:600;color:var(--t1);flex-shrink:0;border-bottom:1px solid var(--bd)}
+.pages{flex:1;overflow:hidden;position:relative}
+.pg{display:none;flex-direction:column;height:100%;background:var(--bg);overflow-y:auto;animation:fadeIn .25s ease}
+.pg.on{display:flex}
+.pg::-webkit-scrollbar{width:0}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.tbar{height:64px;background:#fff;border-top:1px solid var(--bd);display:flex;justify-content:space-around;align-items:center;padding-bottom:4px;flex-shrink:0}
+.ti{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:var(--t3);font-size:10px;font-weight:500;padding:4px 10px;transition:color .2s}
+.ti .ic{font-size:20px;transition:transform .2s}
+.ti.on{color:var(--p)}
+.ti.on .ic{transform:scale(1.1)}
+.cd{background:#fff;border-radius:var(--r);padding:14px 16px;margin:0 14px 12px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.ct{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.ct .mr{font-size:11px;color:var(--p);font-weight:400;cursor:pointer}
+.bb{height:5px;background:var(--bm);border-radius:3px;overflow:hidden}
+.bf{height:100%;background:linear-gradient(90deg,var(--p),var(--pl));border-radius:3px;transition:width .6s ease}
+.tg{display:inline-flex;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:500}
+.tg-b{background:#f0f4ff;color:var(--p)}
+.tg-g{background:#e8f5e9;color:#2e7d32}
+.tg-o{background:#fff3e0;color:#e65100}
+.tg-p{background:#f3e5f5;color:#7b1fa2}
+.tg-r{background:#ffebee;color:#c62828}
+.qi{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:var(--bg);border-radius:12px;cursor:pointer;position:relative;transition:transform .15s}
+.qi:active{transform:scale(.95)}
+.qi .qic{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.qi .ql{font-size:10px;color:#3a3a3c;font-weight:500}
+.rb{font-size:8px;background:#fff3e0;color:#e65100;padding:1px 4px;border-radius:5px;font-weight:600}
+.sd{width:14px;height:14px;border-radius:50%;background:var(--bm);flex-shrink:0;transition:background .3s}
+.sd.ck{background:var(--p)}
+.sd.td{background:#ff9500}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.ri:last-child{border-bottom:none}
+.msg{max-width:78%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;animation:fadeIn .3s ease}
+.msg.ai{align-self:flex-start;background:#fff;border:1px solid var(--bm);border-bottom-left-radius:4px}
+.msg.us{align-self:flex-end;background:var(--p);color:#fff;border-bottom-right-radius:4px}
+.stab{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid var(--bm);background:#fff;color:var(--t2);transition:all .2s}
+.stab.on{background:var(--p);color:#fff;border-color:var(--p)}
+.stab:active{transform:scale(.95)}
+.btn{background:var(--p);color:#fff;border:none;border-radius:12px;padding:11px 0;font-size:14px;font-weight:600;width:100%;cursor:pointer;text-align:center;transition:opacity .2s}
+.btn:active{opacity:.85}
+.btn-o{background:transparent;color:var(--p);border:1px solid var(--p);border-radius:12px;padding:10px 0;font-size:13px;font-weight:600;width:100%;cursor:pointer;text-align:center}
+.modal-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.modal-overlay.on{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:80%;overflow-y:auto;padding:20px 18px;animation:slideUp .3s ease}
+.modal-sm{border-radius:20px;margin:auto 14px;max-height:70%;animation:fadeIn .25s ease}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--bm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;border:none;position:absolute;right:14px;top:14px}
+.tab-sw{display:flex;background:var(--bm);border-radius:10px;padding:3px;margin-bottom:12px}
+.tab-sw span{flex:1;text-align:center;padding:6px 0;border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .2s}
+.tab-sw span.on{background:#fff;color:var(--p);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.menu-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+.menu-item:last-child{border-bottom:none}
+.menu-item .mi-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.menu-item .mi-icon svg{width:18px;height:18px}
+.menu-item .mi-text{flex:1;font-size:13px;font-weight:500;color:var(--t1)}
+.menu-item .mi-arrow{color:var(--t3);font-size:12px}
+.radar-container{display:flex;justify-content:center;padding:10px 0}
+/* SVG icon helpers */
+.icon{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.icon svg{width:100%;height:100%}
+.icon-sm{width:14px;height:14px}
+.icon-lg{width:24px;height:24px}
+.icon-xl{width:32px;height:32px}
+.ri-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ri-icon svg{width:18px;height:18px}
+@media(max-width:440px){.phone{width:100%;height:100vh;border-radius:0;box-shadow:none}body{padding:0}}
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="sbar"><span style="font-weight:700">9:41</span><span style="font-size:11px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> 85%</span></div>
+<div class="pages">
+
+<!-- ========== 页面1：首页 Home ========== -->
+<div class="pg on" id="p-home">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px;background:#fff">
+<div><div style="font-size:20px;font-weight:700;color:var(--t1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 早上好，小明</div><div style="font-size:12px;color:var(--t2);margin-top:2px">今日学习 42 分钟 · 连续学习 7 天</div></div>
+<div style="width:42px;height:42px;background:linear-gradient(135deg,var(--p),var(--pl));border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:600;cursor:pointer" onclick="go('p-profile')">明</div>
+</div>
+<!-- 月度目标+打卡 -->
+<div class="cd" style="margin-top:12px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+<div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--p) 0deg 252deg,var(--bm) 252deg 360deg);display:flex;align-items:center;justify-content:center;position:relative"><span style="position:absolute;width:42px;height:42px;background:#fff;border-radius:50%"></span><span style="position:relative;z-index:1;font-size:14px;font-weight:700;color:var(--p)">70%</span></div>
+<div style="flex:1"><div style="font-size:12px;color:var(--t2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2.5" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 本月目标：完成 10 次练习</div><div class="bb" style="margin-top:5px"><div class="bf" style="width:70%"></div></div><div style="font-size:11px;color:var(--t3);margin-top:3px">已达成 7/10 · 剩余 3 次</div></div>
+</div>
+<div style="border-top:1px solid var(--bd);padding-top:8px">
+<div style="font-size:11px;color:var(--t3);margin-bottom:5px">近 14 天打卡 · 连续 7 天</div>
+<div style="display:flex;gap:4px;align-items:center"><div class="sd"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div><div class="sd ck"></div><div class="sd ck"></div><div class="sd ck"></div><div class="sd ck"></div><div class="sd ck"></div><div class="sd ck"></div><div class="sd td"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:3px;padding:0 2px"><span>5/5</span><span>5/18</span></div>
+</div>
+</div>
+<!-- 本周数据 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> 本周数据</div>
+<div style="display:flex;justify-content:space-around">
+<div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--p)">7</div><div style="font-size:10px;color:var(--t3)">连续天数</div></div>
+<div style="width:1px;background:var(--bd)"></div>
+<div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--p)">23</div><div style="font-size:10px;color:var(--t3)">练习次数</div></div>
+<div style="width:1px;background:var(--bd)"></div>
+<div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--p)">186</div><div style="font-size:10px;color:var(--t3)">学习分钟</div></div>
+</div>
+</div>
+<!-- 快捷功能 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" style="vertical-align:middle"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> 快捷功能 <span class="mr" onclick="go('p-improve')">查看全部 →</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+<div class="qi" onclick="go('p-speak')"><span class="qic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span><span class="ql">口语练习</span><span class="rb">5次</span></div>
+<div class="qi" onclick="go('p-write')"><span class="qic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span><span class="ql">作文批改</span><span class="rb">2次</span></div>
+<div class="qi" onclick="go('p-exam')"><span class="qic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="ql">全真模考</span><span class="rb">3次</span></div>
+<div class="qi" onclick="go('p-improve')"><span class="qic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span><span class="ql">专项训练</span><span class="rb">∞</span></div>
+</div>
+</div>
+<!-- 快速练习 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> 快速练习</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+<div style="background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:12px;padding:10px 12px;cursor:pointer" onclick="go('p-speak')"><div style="margin-bottom:4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 10 3 12 0v-5"/></svg></div><div style="font-size:12px;font-weight:600;color:var(--t1)">雅思口语</div><div style="font-size:10px;color:var(--t2)">Part 1-3 模拟</div></div>
+<div style="background:linear-gradient(135deg,#f3e5f5,#fce4ec);border-radius:12px;padding:10px 12px;cursor:pointer" onclick="go('p-write')"><div style="margin-bottom:4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="font-size:12px;font-weight:600;color:var(--t1)">议论文批改</div><div style="font-size:10px;color:var(--t2)">AI 深度分析</div></div>
+<div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:12px;padding:10px 12px;cursor:pointer" onclick="go('p-speak')"><div style="margin-bottom:4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div><div style="font-size:12px;font-weight:600;color:var(--t1)">发音纠正</div><div style="font-size:10px;color:var(--t2)">跟读 & 对比</div></div>
+<div style="background:linear-gradient(135deg,#fff3e0,#fff8e1);border-radius:12px;padding:10px 12px;cursor:pointer" onclick="go('p-improve')"><div style="margin-bottom:4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div><div style="font-size:12px;font-weight:600;color:var(--t1)">错题复习</div><div style="font-size:10px;color:var(--t2)">智能推荐</div></div>
+</div>
+</div>
+<!-- 今日推荐 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" style="vertical-align:middle"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> 今日推荐 <span class="mr">更多 →</span></div>
+<div class="ri"><div class="ri-icon" style="background:#f0f4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t1)">每日跟读 · 地道发音</div><div style="font-size:11px;color:var(--t2)">重音 & 连读专项训练</div></div><span style="font-size:12px;color:var(--p);font-weight:500;cursor:pointer" onclick="go('p-speak')">去练习 →</span></div>
+<div class="ri"><div class="ri-icon" style="background:#f3e5f5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t1)">语法巩固 · 错题复习</div><div style="font-size:11px;color:var(--t2)">结合最近作文批改查漏补缺</div></div><span style="font-size:12px;color:var(--p);font-weight:500;cursor:pointer" onclick="go('p-write')">去练习 →</span></div>
+<div class="ri"><div class="ri-icon" style="background:#e8f5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t1)">金句积累 · 雅思口语</div><div style="font-size:11px;color:var(--t2)">高分表达与例句</div></div><span style="font-size:12px;color:var(--p);font-weight:500;cursor:pointer">查看 →</span></div>
+</div>
+<div style="height:14px"></div>
+</div>
+
+<!-- ========== 页面2：口语陪练 Speak ========== -->
+<div class="pg" id="p-speak">
+<div style="background:#fff;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0">
+<h1 style="font-size:18px;font-weight:700;color:var(--t1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 口语陪练</h1>
+<span style="color:var(--p);cursor:pointer" onclick="showModal('modal-speak-score')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>
+</div>
+<!-- 场景标签 -->
+<div style="padding:6px 14px;background:#fff;flex-shrink:0;display:flex;gap:6px;overflow-x:auto" id="speak-tabs">
+<span class="stab on" onclick="switchSpeakTab(this)">自由对话</span>
+<span class="stab" onclick="switchSpeakTab(this)">职场面试</span>
+<span class="stab" onclick="switchSpeakTab(this)">雅思模考</span>
+<span class="stab" onclick="switchSpeakTab(this)">旅行出行</span>
+<span class="stab" onclick="switchSpeakTab(this)">商务谈判</span>
+<span class="stab" onclick="switchSpeakTab(this)">校园生活</span>
+</div>
+<!-- AI角色卡 -->
+<div style="background:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd);flex-shrink:0">
+<div style="width:36px;height:36px;background:linear-gradient(135deg,var(--p),var(--pl));border-radius:50%;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--t1)">小鱼 · AI 口语教练</div><div style="font-size:10px;color:var(--t3)">当前场景：自由对话 · 已对话 5 轮</div></div>
+<div style="text-align:right"><div style="font-size:16px;font-weight:700;color:var(--p)">7.8</div><div style="font-size:9px;color:var(--t3)">实时评分</div></div>
+</div>
+<!-- 对话消息列表 -->
+<div style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px" id="speak-chat">
+<div class="msg ai">Hello! I'm Xiaoyu, your AI speaking coach. What topic would you like to practice today? We could talk about travel, food, technology, or anything you're interested in!<div style="font-size:10px;color:var(--t3);margin-top:3px">09:41</div></div>
+<div class="msg us">I'd like to talk about travel. I recently went to the beach and had a wonderful time there.<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:3px">09:42</div></div>
+<div class="msg ai">That sounds lovely! Beach trips are always refreshing. Which beach did you visit? What was the most memorable part of your trip?<div style="font-size:10px;color:var(--t3);margin-top:3px">09:42</div></div>
+<div class="msg us">I went to Yalong Bay in Sanya. The sand was incredibly fine and the water was crystal clear. I also tried snorkeling for the first time.<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:3px">09:43</div></div>
+<div class="msg ai">Excellent description! Your use of "incredibly fine" and "crystal clear" shows great vocabulary. For even more natural expression, you could say "The sand was powder-soft" or "The water was so clear you could see right to the bottom."<div style="font-size:10px;color:var(--t3);margin-top:3px">09:43</div></div>
+<!-- 地道表达提示 -->
+<div style="align-self:flex-start;max-width:85%;padding:8px 12px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:10px;font-size:11px;color:var(--t1);border:1px solid #c8e6c9">
+<strong style="color:#2e7d32"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" style="vertical-align:middle"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> 地道表达推荐</strong>
+<div style="margin-top:4px;line-height:1.6">
+• "powder-soft sand" = 粉末般细腻的沙子<br>
+• "crystal clear" = 清澈见底<br>
+• "tried my hand at" = 第一次尝试
+</div>
+</div>
+</div>
+<!-- 实时评分卡 -->
+<div style="background:#fff;padding:10px 14px;border-top:1px solid var(--bd);flex-shrink:0">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+<span style="font-size:12px;font-weight:600;color:var(--t1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2.5" style="vertical-align:middle"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> 实时评分</span>
+<span><span style="font-size:18px;font-weight:700;color:var(--p)">7.8</span><span style="font-size:12px;color:var(--t3)"> / 9.0</span></span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+<div style="text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">发音</div><div class="bb" style="height:4px"><div class="bf" style="width:78%"></div></div><div style="font-size:10px;font-weight:600;color:var(--p);margin-top:2px">7.0</div></div>
+<div style="text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">语法</div><div class="bb" style="height:4px"><div class="bf" style="width:87%"></div></div><div style="font-size:10px;font-weight:600;color:var(--p);margin-top:2px">7.8</div></div>
+<div style="text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">词汇</div><div class="bb" style="height:4px"><div class="bf" style="width:82%"></div></div><div style="font-size:10px;font-weight:600;color:var(--p);margin-top:2px">7.4</div></div>
+<div style="text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">流利度</div><div class="bb" style="height:4px"><div class="bf" style="width:90%"></div></div><div style="font-size:10px;font-weight:600;color:var(--p);margin-top:2px">8.1</div></div>
+</div>
+</div>
+<!-- 输入栏 -->
+<div style="background:#fff;padding:8px 14px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bm);flex-shrink:0">
+<input type="text" placeholder="Type your response..." style="flex:1;padding:10px 16px;border:1px solid var(--bm);border-radius:24px;font-size:13px;outline:none;background:#f7f8fc" id="speak-input"/>
+<div style="width:34px;height:34px;background:var(--p);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer" onclick="sendSpeakMsg()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+<div style="width:42px;height:42px;background:linear-gradient(135deg,var(--p),var(--pl));border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(74,108,247,.3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+</div>
+<!-- 评分详情弹窗 -->
+<div class="modal-overlay" id="modal-speak-score">
+<div class="modal">
+<div style="position:relative;padding-bottom:10px">
+<button class="modal-close" onclick="hideModal('modal-speak-score')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> 评分详情</h3>
+<div style="text-align:center;margin-bottom:16px">
+<div style="font-size:42px;font-weight:800;color:var(--p)">7.8</div>
+<div style="font-size:12px;color:var(--t3)">综合评分 / 9.0</div>
+<div style="display:flex;gap:6px;justify-content:center;margin-top:8px">
+<span class="tg tg-b">中高级</span><span class="tg tg-g">进步明显</span><span class="tg tg-o">词汇待提升</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+<div style="background:var(--bg);border-radius:12px;padding:10px"><div style="font-size:11px;color:var(--t2)">发音</div><div style="font-size:20px;font-weight:700;color:var(--t1)">7.0</div><div class="bb" style="height:4px;margin-top:4px"><div class="bf" style="width:78%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px"><div style="font-size:11px;color:var(--t2)">语法</div><div style="font-size:20px;font-weight:700;color:var(--t1)">7.8</div><div class="bb" style="height:4px;margin-top:4px"><div class="bf" style="width:87%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px"><div style="font-size:11px;color:var(--t2)">词汇</div><div style="font-size:20px;font-weight:700;color:var(--t1)">7.4</div><div class="bb" style="height:4px;margin-top:4px"><div class="bf" style="width:82%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px"><div style="font-size:11px;color:var(--t2)">流利度</div><div style="font-size:20px;font-weight:700;color:var(--t1)">8.1</div><div class="bb" style="height:4px;margin-top:4px"><div class="bf" style="width:90%"></div></div></div>
+</div>
+<div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:12px">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> AI 教练建议</div>
+<div style="font-size:12px;color:var(--t2);line-height:1.6">
+• 发音方面：注意 "incredibly" 的重音在第二音节<br>
+• 词汇方面：尝试使用更多高级描述词，如 "breathtaking", "pristine"<br>
+• 流利度很好，继续保持自然的语速和节奏
+</div>
+</div>
+<button class="btn" onclick="hideModal('modal-speak-score')">继续练习</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面3：作文批改 Write ========== -->
+<div class="pg" id="p-write">
+<div style="background:#fff;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0">
+<h1 style="font-size:18px;font-weight:700;color:var(--t1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 作文批改</h1>
+<span style="color:var(--p);font-size:13px;cursor:pointer" onclick="showModal('modal-topic-select')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 换题</span>
+</div>
+<!-- 题目区域 -->
+<div class="cd" style="margin-top:12px">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+<span style="font-weight:600;font-size:14px;flex:1">Topic: The Impact of Technology on Daily Life</span>
+</div>
+<div style="display:flex;gap:6px;margin-bottom:10px">
+<span class="tg tg-b">雅思 Task 2</span><span class="tg tg-g">议论文</span><span class="tg tg-o">250+ words</span>
+</div>
+<div style="position:relative">
+<div style="background:#f7f8fc;border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.8;color:#3a3a3c;min-height:100px;border:1px solid var(--bm)">
+Technology has <span style="background:#ffe8e8;text-decoration:underline wavy #ff6b6b;padding:0 2px;border-radius:2px" title="语法错误">significantly changed</span> our daily lives in numerous ways. Smartphones have made communication more convenient, allowing people to <span style="background:#fff3e0;padding:0 2px;border-radius:2px" title="建议优化">stay connected</span> with friends and family at any time. The internet has also made <span style="background:#e8f5e9;padding:0 2px;border-radius:2px" title="用词准确">information retrieval</span> much faster and more efficient.
+
+However, this technological revolution has also brought some <span style="background:#f3e5f5;padding:0 2px;border-radius:2px" title="文体建议">problems</span> that we need to address carefully.
+</div>
+<div style="position:absolute;bottom:8px;right:12px;font-size:10px;color:var(--t3);background:#f7f8fc;padding:0 4px">共 268 字</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<div class="tab-sw" style="width:180px;margin-bottom:0">
+<span class="on" onclick="switchWriteMode(this)">快速批改</span>
+<span onclick="switchWriteMode(this)">深度批改</span>
+</div>
+<span style="font-size:11px;color:var(--t3)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 约 8 秒</span>
+</div>
+</div>
+<!-- 批改结果 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 批改结果 <span class="mr">完整报告 →</span></div>
+<div style="display:flex;justify-content:center;margin-bottom:14px">
+<div style="position:relative;width:90px;height:90px">
+<svg width="90" height="90" viewBox="0 0 90 90">
+<circle cx="45" cy="45" r="36" fill="none" stroke="#e9ecf2" stroke-width="7"/>
+<circle cx="45" cy="45" r="36" fill="none" stroke="url(#scoreGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="45" transform="rotate(-90 45 45)"/>
+<defs><linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#4A6CF7"/><stop offset="100%" style="stop-color:#7c9bf7"/></linearGradient></defs>
+</svg>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-size:26px;font-weight:800;color:var(--p)">7.2</span><span style="font-size:10px;color:var(--t3)">/ 9.0</span></div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--t2)">语法</span><span style="font-size:16px;font-weight:700;color:var(--t1)">8.0</span></div><div class="bb" style="height:4px;margin-top:6px"><div class="bf" style="width:89%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--t2)">逻辑</span><span style="font-size:16px;font-weight:700;color:var(--t1)">6.5</span></div><div class="bb" style="height:4px;margin-top:6px"><div class="bf" style="width:72%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--t2)">词汇</span><span style="font-size:16px;font-weight:700;color:var(--t1)">7.0</span></div><div class="bb" style="height:4px;margin-top:6px"><div class="bf" style="width:78%"></div></div></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--t2)">结构</span><span style="font-size:16px;font-weight:700;color:var(--t1)">7.5</span></div><div class="bb" style="height:4px;margin-top:6px"><div class="bf" style="width:83%"></div></div></div>
+</div>
+<!-- 总体评价 -->
+<div style="margin-bottom:12px">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" style="vertical-align:middle"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 总体评价</div>
+<div style="display:flex;gap:8px">
+<div style="flex:1;background:#e8f5e9;border-radius:10px;padding:8px 10px"><div style="font-size:10px;font-weight:600;color:#2e7d32;margin-bottom:4px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="3" style="vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> 亮点</div><div style="font-size:10px;color:#3a3a3c;line-height:1.5">• 论点清晰<br>• 用词准确<br>• 结构完整</div></div>
+<div style="flex:1;background:#fff3e0;border-radius:10px;padding:8px 10px"><div style="font-size:10px;font-weight:600;color:#e65100;margin-bottom:4px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5" style="vertical-align:middle"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> 待提升</div><div style="font-size:10px;color:#3a3a3c;line-height:1.5">• 论据不够充分<br>• 缺少数据支撑<br>• 转折不够自然</div></div>
+</div>
+</div>
+<!-- 四层批改梯度 -->
+<div style="font-size:12px;font-weight:600;margin-bottom:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t1)" stroke-width="2" style="vertical-align:middle"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 批改详情</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="width:8px;height:8px;border-radius:50%;background:#34c759;flex-shrink:0"></span><div><strong style="color:#2e7d32">基础纠错</strong><span style="color:var(--t2)"> "stay connected" → "maintain connectivity"</span></div></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="width:8px;height:8px;border-radius:50%;background:#ff9500;flex-shrink:0"></span><div><strong style="color:#e65100">语言优化</strong><span style="color:var(--t2)"> "problems" → "challenges and concerns"</span></div></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0"></span><div><strong style="color:var(--p)">结构逻辑</strong><span style="color:var(--t2)"> 建议增加让步段落增强论证</span></div></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0"><span style="width:8px;height:8px;border-radius:50%;background:#af52de;flex-shrink:0"></span><div><strong style="color:#7b1fa2">文体适配</strong><span style="color:var(--t2)"> 可补充统计数据增强说服力</span></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+<button class="btn" style="padding:9px;font-size:12px">查看优化方案</button>
+<button class="btn-o" style="padding:9px;font-size:12px">复制优化版</button>
+<button class="btn-o" style="padding:9px;font-size:12px">加入错题本</button>
+<button class="btn-o" style="padding:9px;font-size:12px">范文参考</button>
+</div>
+</div>
+<div style="height:14px"></div>
+<!-- 题目选择弹窗 -->
+<div class="modal-overlay" id="modal-topic-select">
+<div class="modal">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-topic-select')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:14px">选择题目</h3>
+<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+<span class="stab on">全部</span><span class="stab">雅思</span><span class="stab">托福</span><span class="stab">四六级</span><span class="stab">高考</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="background:var(--bg);border-radius:12px;padding:12px;cursor:pointer;border:2px solid var(--p)"><div style="display:flex;gap:6px;margin-bottom:4px"><span class="tg tg-b">雅思 Task 2</span><span class="tg tg-g">议论文</span></div><div style="font-size:13px;font-weight:500">The Impact of Technology on Daily Life</div></div>
+<div style="background:var(--bg);border-radius:12px;padding:12px;cursor:pointer;border:2px solid transparent"><div style="display:flex;gap:6px;margin-bottom:4px"><span class="tg tg-b">雅思 Task 2</span><span class="tg tg-o">说明文</span></div><div style="font-size:13px;font-weight:500">The Advantages of Remote Working</div></div>
+<div style="background:var(--bg);border-radius:12px;padding:12px;cursor:pointer;border:2px solid transparent"><div style="display:flex;gap:6px;margin-bottom:4px"><span class="tg tg-p">托福</span><span class="tg tg-g">议论文</span></div><div style="font-size:13px;font-weight:500">Should Universities Require Students to Study Abroad?</div></div>
+</div>
+<button class="btn" style="margin-top:14px" onclick="hideModal('modal-topic-select')">确认选择</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面4：学习报告 Report ========== -->
+<div class="pg" id="p-report">
+<div style="background:#fff;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0">
+<h1 style="font-size:18px;font-weight:700;color:var(--t1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> 学习报告</h1>
+<span style="font-size:12px;color:var(--p);cursor:pointer" onclick="showModal('modal-error-book')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 错题本</span>
+</div>
+<div style="padding:12px 14px 0">
+<div class="tab-sw" id="report-tabs">
+<span class="on" onclick="switchReportTab(this)">本周</span>
+<span onclick="switchReportTab(this)">本月</span>
+<span onclick="switchReportTab(this)">本年</span>
+</div>
+</div>
+<!-- 六维能力雷达图 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 能力雷达图</div>
+<div class="radar-container">
+<svg width="200" height="200" viewBox="0 0 200 200">
+<polygon points="100,30 160,65 160,135 100,170 40,135 40,65" fill="none" stroke="#e9ecf2" stroke-width="1"/>
+<polygon points="100,50 145,75 145,125 100,150 55,125 55,75" fill="none" stroke="#e9ecf2" stroke-width="1"/>
+<polygon points="100,70 130,85 130,115 100,130 70,115 70,85" fill="none" stroke="#e9ecf2" stroke-width="1"/>
+<polygon points="100,42 152,72 148,128 100,155 52,120 55,70" fill="rgba(74,108,247,.15)" stroke="var(--p)" stroke-width="2"/>
+<circle cx="100" cy="42" r="4" fill="var(--p)"/><circle cx="152" cy="72" r="4" fill="var(--p)"/>
+<circle cx="148" cy="128" r="4" fill="var(--p)"/><circle cx="100" cy="155" r="4" fill="var(--p)"/>
+<circle cx="52" cy="120" r="4" fill="var(--p)"/><circle cx="55" cy="70" r="4" fill="var(--p)"/>
+<text x="100" y="22" text-anchor="middle" font-size="10" fill="#6c6c70">发音 8.2</text>
+<text x="172" y="68" text-anchor="start" font-size="10" fill="#6c6c70">语法 7.8</text>
+<text x="172" y="135" text-anchor="start" font-size="10" fill="#6c6c70">词汇 7.0</text>
+<text x="100" y="185" text-anchor="middle" font-size="10" fill="#6c6c70">流利度 6.5</text>
+<text x="22" y="135" text-anchor="end" font-size="10" fill="#6c6c70">写作 7.2</text>
+<text x="22" y="68" text-anchor="end" font-size="10" fill="#6c6c70">逻辑 7.5</text>
+</svg>
+</div>
+</div>
+<!-- 学习时长柱状图 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t1)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 学习时长 <span class="mr">共 186 分钟</span></div>
+<div style="display:flex;align-items:flex-end;justify-content:space-between;height:80px;padding:0 4px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:35px;background:var(--pl);border-radius:4px 4px 0 0;opacity:.7"></div><span style="font-size:9px;color:var(--t3)">周一</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:50px;background:var(--pl);border-radius:4px 4px 0 0;opacity:.7"></div><span style="font-size:9px;color:var(--t3)">周二</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:28px;background:var(--pl);border-radius:4px 4px 0 0;opacity:.7"></div><span style="font-size:9px;color:var(--t3)">周三</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:65px;background:var(--orange);border-radius:4px 4px 0 0"></div><span style="font-size:9px;color:var(--t3)">周四</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:42px;background:var(--pl);border-radius:4px 4px 0 0;opacity:.7"></div><span style="font-size:9px;color:var(--t3)">周五</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:55px;background:var(--pl);border-radius:4px 4px 0 0;opacity:.7"></div><span style="font-size:9px;color:var(--t3)">周六</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="width:20px;height:45px;background:var(--p);border-radius:4px 4px 0 0"></div><span style="font-size:9px;color:var(--orange)">今天</span></div>
+</div>
+</div>
+<!-- 评分趋势 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> 评分趋势</div>
+<div style="display:flex;gap:12px;margin-bottom:8px">
+<div style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:3px;background:var(--p);border-radius:2px"></span><span style="font-size:10px;color:var(--t2)">口语</span></div>
+<div style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:3px;background:var(--orange);border-radius:2px"></span><span style="font-size:10px;color:var(--t2)">作文</span></div>
+</div>
+<svg width="100%" height="60" viewBox="0 0 300 60" preserveAspectRatio="none">
+<polyline points="0,45 50,40 100,35 150,30 200,25 250,22 300,18" fill="none" stroke="var(--p)" stroke-width="2"/>
+<polyline points="0,50 50,48 100,42 150,38 200,35 250,30 300,28" fill="none" stroke="var(--orange)" stroke-width="2" stroke-dasharray="4,2"/>
+</svg>
+<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:4px"><span>5/12</span><span>5/13</span><span>5/14</span><span>5/15</span><span>5/16</span><span>5/17</span><span>5/18</span></div>
+</div>
+<!-- 学习成就 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> 学习成就</div>
+<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px">
+<div style="min-width:70px;text-align:center;padding:8px;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-radius:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><div style="font-size:10px;font-weight:600;margin-top:3px">7天连续</div></div>
+<div style="min-width:70px;text-align:center;padding:8px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><div style="font-size:10px;font-weight:600;margin-top:3px">首次8分</div></div>
+<div style="min-width:70px;text-align:center;padding:8px;background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><div style="font-size:10px;font-weight:600;margin-top:3px">百篇作文</div></div>
+<div style="min-width:70px;text-align:center;padding:8px;background:linear-gradient(135deg,#f3e5f5,#e1bee7);border-radius:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div style="font-size:10px;font-weight:600;margin-top:3px">词汇达人</div></div>
+<div style="min-width:70px;text-align:center;padding:8px;background:var(--bm);border-radius:12px;opacity:.5"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><div style="font-size:10px;font-weight:600;margin-top:3px">待解锁</div></div>
+</div>
+</div>
+<!-- AI洞察 -->
+<div class="cd" style="background:linear-gradient(135deg,#f0f4ff,#fff)">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> AI 数据洞察</div>
+<div style="font-size:12px;color:var(--t2);line-height:1.7">
+<p>本周学习数据分析：</p>
+<p style="margin-top:6px">• 口语流利度提升 <strong style="color:var(--green)">+0.3</strong>，继续保持每日对话练习</p>
+<p>• 作文逻辑得分偏低，建议重点练习<strong style="color:var(--p)">论证结构</strong></p>
+<p>• 词汇量增长稳定，本周新增 <strong style="color:var(--p)">42</strong> 个高频词</p>
+<p style="margin-top:6px;color:var(--p);font-weight:500">建议：本周重点关注逻辑专项训练</p>
+</div>
+</div>
+<div style="height:14px"></div>
+<!-- 错题本弹窗 -->
+<div class="modal-overlay" id="modal-error-book">
+<div class="modal">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-error-book')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:4px">错题本</h3>
+<p style="font-size:11px;color:var(--t3);margin-bottom:14px">共 15 道错题 · 已复习 8 道</p>
+<div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px"><div class="ri-icon" style="background:#fff3e0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div><div style="flex:1"><div style="font-size:12px;font-weight:500">"interesting" 重音位置</div><div style="font-size:10px;color:var(--t3)">正确：IN-ter-est-ing · 口语</div></div><span class="tg tg-o">未复习</span></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px"><div class="ri-icon" style="background:#e8f5e9"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div style="flex:1"><div style="font-size:12px;font-weight:500">主谓一致错误</div><div style="font-size:10px;color:var(--t3)">"The team are" → "The team is" · 作文</div></div><span class="tg tg-g">已复习</span></div>
+<div style="background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px"><div class="ri-icon" style="background:#f0f4ff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div style="flex:1"><div style="font-size:12px;font-weight:500">词汇搭配错误</div><div style="font-size:10px;color:var(--t3)">"do a decision" → "make a decision" · 作文</div></div><span class="tg tg-o">未复习</span></div>
+</div>
+<button class="btn" style="margin-top:14px" onclick="hideModal('modal-error-book')">开始复习</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面5：个人中心 Profile ========== -->
+<div class="pg" id="p-profile">
+<div style="background:linear-gradient(135deg,var(--p),var(--pl));padding:20px 18px 16px;color:#fff">
+<div style="display:flex;align-items:center;gap:12px">
+<div style="width:52px;height:52px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2px solid rgba(255,255,255,.4)">明</div>
+<div style="flex:1"><div style="font-size:18px;font-weight:700">小明</div><div style="display:flex;gap:6px;margin-top:4px"><span style="background:rgba(255,255,255,.25);padding:2px 10px;border-radius:8px;font-size:10px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" style="vertical-align:middle"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg> VIP会员</span><span style="font-size:10px;opacity:.8">到期 2026-12-31</span></div></div>
+<div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="showModal('modal-settings')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+</div>
+<div style="display:flex;justify-content:space-around;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.2)">
+<div style="text-align:center"><div style="font-size:22px;font-weight:700">42</div><div style="font-size:10px;opacity:.8">学习天数</div></div>
+<div style="text-align:center"><div style="font-size:22px;font-weight:700">128</div><div style="font-size:10px;opacity:.8">练习次数</div></div>
+<div style="text-align:center"><div style="font-size:22px;font-weight:700">1860</div><div style="font-size:10px;opacity:.8">累计分钟</div></div>
+</div>
+</div>
+<!-- 能力综合评估 -->
+<div class="cd" style="margin-top:12px">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> 能力综合评估 <span class="mr">详情 →</span></div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">发音</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:78%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">7.0</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">语法</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:87%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">7.8</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">词汇</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:72%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">6.5</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">流利度</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:82%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">7.4</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">写作</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:80%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">7.2</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;width:36px;color:var(--t2)">逻辑</span><div class="bb" style="flex:1;height:6px"><div class="bf" style="width:61%"></div></div><span style="font-size:11px;font-weight:600;color:var(--p);width:28px;text-align:right">5.5</span></div>
+</div>
+<div style="text-align:center;font-size:11px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">当前等级：<strong style="color:var(--p)">Lv.4 中高级</strong> · 超越 68% 同龄学习者</div>
+</div>
+<!-- 功能菜单 -->
+<div class="cd">
+<div class="menu-item" onclick="showModal('modal-goal')"><div class="mi-icon" style="background:#f0f4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><span class="mi-text">我的订单</span><span class="mi-arrow">›</span></div>
+<div class="menu-item"><div class="mi-icon" style="background:#fff3e0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><span class="mi-text">我的收藏</span><span class="mi-arrow">›</span></div>
+<div class="menu-item" onclick="showModal('modal-goal')"><div class="mi-icon" style="background:#e8f5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><span class="mi-text">学习目标</span><span class="mi-arrow">›</span></div>
+<div class="menu-item" onclick="showModal('modal-invite')"><div class="mi-icon" style="background:#f3e5f5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><rect x="6" y="4" width="12" height="8" rx="1"/><path d="M12 12V4"/><path d="M12 4l3 3M12 4L9 7"/></svg></div><span class="mi-text">邀请好友</span><span class="mi-arrow">›</span></div>
+</div>
+<!-- 设置菜单 -->
+<div class="cd">
+<div class="menu-item" onclick="showModal('modal-settings')"><div class="mi-icon" style="background:#f7f8fc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15 1.65 1.65 0 0 0 3.17 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 10 3.17V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div><span class="mi-text">常规设置</span><span class="mi-arrow">›</span></div>
+<div class="menu-item"><div class="mi-icon" style="background:#f7f8fc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><span class="mi-text">提醒设置</span><span class="mi-arrow">›</span></div>
+<div class="menu-item"><div class="mi-icon" style="background:#f7f8fc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><span class="mi-text">隐私政策</span><span class="mi-arrow">›</span></div>
+<div class="menu-item"><div class="mi-icon" style="background:#f7f8fc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div><span class="mi-text">关于我们</span><span class="mi-arrow">›</span></div>
+</div>
+<div style="margin:0 14px 12px"><button class="btn" style="background:transparent;color:#ff3b30;border:1px solid #ffcdd2;font-size:13px;padding:10px" onclick="go('p-login')">退出登录</button></div>
+<div style="height:14px"></div>
+<!-- 学习目标弹窗 -->
+<div class="modal-overlay" id="modal-goal">
+<div class="modal modal-sm" style="margin-top:auto;margin-bottom:auto">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-goal')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:14px">学习目标设置</h3>
+<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">目标考试</label><select style="width:100%;padding:10px 12px;border:1px solid var(--bm);border-radius:10px;font-size:13px;background:#fff;outline:none"><option>雅思 IELTS</option><option>托福 TOEFL</option><option>四六级 CET</option><option>高考</option><option>考研</option></select></div>
+<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">目标分数</label><input type="range" min="5" max="9" step="0.5" value="7" style="width:100%"/><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3)"><span>5.0</span><span style="color:var(--p);font-weight:600">7.0</span><span>9.0</span></div></div>
+<div style="margin-bottom:14px"><label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">每日学习时长</label><div style="display:flex;gap:8px"><span class="stab">15分钟</span><span class="stab on">30分钟</span><span class="stab">45分钟</span><span class="stab">60分钟</span></div></div>
+<button class="btn" onclick="hideModal('modal-goal')">保存目标</button>
+</div>
+</div>
+</div>
+<!-- 邀请好友弹窗 -->
+<div class="modal-overlay" id="modal-invite">
+<div class="modal modal-sm" style="margin-top:auto;margin-bottom:auto">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-invite')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:6px">邀请好友</h3>
+<p style="font-size:11px;color:var(--t3);margin-bottom:14px">邀请好友注册，双方各得 3 天 VIP</p>
+<div style="background:var(--bg);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px">
+<div style="font-size:11px;color:var(--t2);margin-bottom:6px">我的邀请码</div>
+<div style="font-size:24px;font-weight:800;color:var(--p);letter-spacing:4px">AK7X9M</div>
+</div>
+<button class="btn" style="margin-bottom:8px">复制邀请链接</button>
+<button class="btn-o">分享给好友</button>
+</div>
+</div>
+</div>
+<!-- 常规设置弹窗 -->
+<div class="modal-overlay" id="modal-settings">
+<div class="modal">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-settings')">✕</button>
+<h3 style="font-size:16px;font-weight:700;margin-bottom:14px">常规设置</h3>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">深色模式</span><div style="width:44px;height:24px;background:var(--bm);border-radius:12px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;box-shadow:0 1px 3px rgba(0,0,0,.1)"></div></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">AI 语音</span><div style="width:44px;height:24px;background:var(--p);border-radius:12px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;box-shadow:0 1px 3px rgba(0,0,0,.1)"></div></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">界面语言</span><span style="font-size:12px;color:var(--p)">简体中文 ›</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">字体大小</span><span style="font-size:12px;color:var(--p)">标准 ›</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><span style="font-size:13px">清除缓存</span><span style="font-size:12px;color:var(--t3)">23.5 MB</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面6：全真模考 Exam ========== -->
+<div class="pg" id="p-exam">
+<div style="background:#fff;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0">
+<div style="display:flex;align-items:center;gap:8px"><button onclick="go('p-home')" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:#fff;cursor:pointer;font-size:12px">←</button><h1 style="font-size:18px;font-weight:700;color:var(--t1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 全真模考</h1></div>
+<span style="font-size:12px;color:var(--p);cursor:pointer">历史 →</span>
+</div>
+<div style="padding:14px">
+<div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:10px">选择考试类型</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid var(--p);background:#f0f4ff" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 10 3 12 0v-5"/></svg></div><div style="font-weight:700;font-size:12px">雅思</div><div style="font-size:9px;color:var(--t3);margin-top:2px">IELTS</div></div>
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid transparent" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><div style="font-weight:700;font-size:12px">托福</div><div style="font-size:9px;color:var(--t3);margin-top:2px">TOEFL</div></div>
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid transparent" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div style="font-weight:700;font-size:12px">四六级</div><div style="font-size:9px;color:var(--t3);margin-top:2px">CET 4/6</div></div>
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid transparent" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div style="font-weight:700;font-size:12px">高考</div><div style="font-size:9px;color:var(--t3);margin-top:2px">Gaokao</div></div>
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid transparent" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div style="font-weight:700;font-size:12px">考研</div><div style="font-size:9px;color:var(--t3);margin-top:2px">Postgrad</div></div>
+<div class="cd exam-type-card" style="margin:0;text-align:center;padding:14px 8px;cursor:pointer;border:2px solid transparent" onclick="selectExamType(this)"><div style="margin-bottom:6px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div style="font-weight:700;font-size:12px">自定义</div><div style="font-size:9px;color:var(--t3);margin-top:2px">Custom</div></div>
+</div>
+</div>
+<!-- 考试详情 -->
+<div class="cd">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+<div style="width:40px;height:40px;background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:12px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 10 3 12 0v-5"/></svg></div>
+<div><div style="font-size:14px;font-weight:700">雅思口语模考</div><div style="font-size:11px;color:var(--t3)">IELTS Speaking · Part 1-3</div></div>
+</div>
+<div style="background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--t2)">考试时长</span><span style="font-size:11px;font-weight:600">11-14 分钟</span></div>
+<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--t2)">题目数量</span><span style="font-size:11px;font-weight:600">3 个 Part</span></div>
+<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--t2)">评分标准</span><span style="font-size:11px;font-weight:600">雅思官方 9 分制</span></div>
+</div>
+<div style="font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:12px">
+<strong>考试说明：</strong><br>
+• Part 1：日常话题问答（4-5分钟）<br>
+• Part 2：话题卡独白（1-2分钟准备 + 2分钟回答）<br>
+• Part 3：深入讨论（4-5分钟）
+</div>
+<button class="btn" onclick="showModal('modal-exam-progress')">开始模考</button>
+</div>
+<!-- 历史记录 -->
+<div class="cd">
+<div class="ct">历史模考记录</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:12px;cursor:pointer" onclick="showModal('modal-exam-result')">
+<div><div style="display:flex;gap:4px;margin-bottom:3px"><span class="tg tg-b">雅思</span><span style="font-size:10px;color:var(--t2)">Speaking Part 1-3</span></div><span style="font-size:10px;color:var(--t3)">2026-05-16 · 12分钟</span></div>
+<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--p)">7.0</div><div style="font-size:9px;color:var(--t3)">/ 9.0</div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:12px">
+<div><div style="display:flex;gap:4px;margin-bottom:3px"><span class="tg tg-g">四六级</span><span style="font-size:10px;color:var(--t2)">口语考试</span></div><span style="font-size:10px;color:var(--t3)">2026-05-14 · 8分钟</span></div>
+<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--p)">6.5</div><div style="font-size:9px;color:var(--t3)">/ 9.0</div></div>
+</div>
+</div>
+</div>
+<div style="height:14px"></div>
+<!-- 模考进行弹窗 -->
+<div class="modal-overlay" id="modal-exam-progress">
+<div class="modal">
+<div style="position:relative;text-align:center">
+<button class="modal-close" onclick="hideModal('modal-exam-progress')">✕</button>
+<div style="font-size:12px;color:var(--t3);margin-bottom:6px">Part 1 · 日常话题</div>
+<div style="font-size:28px;font-weight:800;color:var(--p);margin-bottom:12px">02:30</div>
+<div style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:14px;text-align:left">
+<div style="font-size:11px;color:var(--t3);margin-bottom:6px">Question 1 of 3</div>
+<div style="font-size:14px;font-weight:600;color:var(--t1);line-height:1.6">Do you enjoy traveling? Tell me about a memorable trip you've taken recently.</div>
+</div>
+<div style="margin-bottom:14px">
+<div style="width:64px;height:64px;background:linear-gradient(135deg,var(--p),var(--pl));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;cursor:pointer;box-shadow:0 4px 16px rgba(74,108,247,.3);animation:pulse 2s infinite">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+</div>
+<div style="font-size:11px;color:var(--t3);margin-top:8px">点击开始录音</div>
+</div>
+<div style="background:var(--bg);border-radius:10px;padding:10px 12px;text-align:left;font-size:12px;color:var(--t2);min-height:40px">
+<span style="color:var(--t3);font-style:italic">录音转写文本将显示在这里...</span>
+</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+<button class="btn-o" style="flex:1" onclick="hideModal('modal-exam-progress')">结束模考</button>
+<button class="btn" style="flex:1">下一题 →</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 模考结果弹窗 -->
+<div class="modal-overlay" id="modal-exam-result">
+<div class="modal">
+<div style="position:relative;text-align:center">
+<button class="modal-close" onclick="hideModal('modal-exam-result')">✕</button>
+<div style="font-size:14px;font-weight:600;margin-bottom:4px">模考完成</div>
+<div style="font-size:11px;color:var(--t3);margin-bottom:14px">雅思口语 · 2026-05-16</div>
+<div style="font-size:48px;font-weight:800;color:var(--p)">7.0</div>
+<div style="font-size:12px;color:var(--t3);margin-bottom:16px">综合评分 / 9.0</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;text-align:left">
+<div style="background:var(--bg);border-radius:10px;padding:10px"><div style="font-size:10px;color:var(--t2)">发音</div><div style="font-size:18px;font-weight:700">7.0</div><div class="bb" style="height:3px;margin-top:4px"><div class="bf" style="width:78%"></div></div></div>
+<div style="background:var(--bg);border-radius:10px;padding:10px"><div style="font-size:10px;color:var(--t2)">语法</div><div style="font-size:18px;font-weight:700">7.5</div><div class="bb" style="height:3px;margin-top:4px"><div class="bf" style="width:83%"></div></div></div>
+<div style="background:var(--bg);border-radius:10px;padding:10px"><div style="font-size:10px;color:var(--t2)">词汇</div><div style="font-size:18px;font-weight:700">6.5</div><div class="bb" style="height:3px;margin-top:4px"><div class="bf" style="width:72%"></div></div></div>
+<div style="background:var(--bg);border-radius:10px;padding:10px"><div style="font-size:10px;color:var(--t2)">流利度</div><div style="font-size:18px;font-weight:700">7.0</div><div class="bb" style="height:3px;margin-top:4px"><div class="bf" style="width:78%"></div></div></div>
+</div>
+<div style="background:var(--bg);border-radius:12px;padding:12px;text-align:left;margin-bottom:14px">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px">AI 点评</div>
+<div style="font-size:11px;color:var(--t2);line-height:1.6">整体表现良好！Part 1 回答流畅自然，Part 2 内容丰富但时间控制需加强，Part 3 论证深度可以进一步提升。建议多练习复杂句式的使用。</div>
+</div>
+<button class="btn" onclick="hideModal('modal-exam-result')">查看详细报告</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面7：专项提升 Improve ========== -->
+<div class="pg" id="p-improve">
+<div style="background:#fff;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0">
+<div style="display:flex;align-items:center;gap:8px"><button onclick="go('p-home')" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:#fff;cursor:pointer;font-size:12px">←</button><h1 style="font-size:18px;font-weight:700;color:var(--t1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> 专项提升</h1></div>
+</div>
+<!-- AI推荐 -->
+<div class="cd" style="margin-top:12px;background:linear-gradient(135deg,rgba(74,108,247,.08),rgba(124,155,247,.05));border:1px solid rgba(74,108,247,.15)">
+<div style="display:flex;gap:10px;align-items:center">
+<div style="width:40px;height:40px;border-radius:14px;background:var(--p);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></div>
+<div style="flex:1"><div style="font-weight:700;font-size:13px;margin-bottom:3px;color:var(--t1)">AI 推荐今日训练</div><div style="font-size:11px;color:var(--t2);line-height:1.5">根据你的能力雷达图分析，今天重点练习<strong style="color:var(--p)">逻辑论证</strong>和<strong style="color:var(--orange)">词汇搭配</strong></div></div>
+</div>
+<button class="btn" style="margin-top:10px;padding:9px;font-size:12px" onclick="showModal('modal-daily-practice')">开始今日训练</button>
+</div>
+<!-- 四大专项模块 -->
+<div style="padding:0 14px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+<div class="cd" style="margin:0;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer" onclick="showModal('modal-exercise')">
+<div style="width:44px;height:44px;border-radius:14px;background:#e8f5e9;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div>
+<div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-weight:700;font-size:13px">发音专项</span><span style="font-size:12px;font-weight:700;color:#2e7d32">72%</span></div><div style="font-size:10px;color:var(--t2);margin:3px 0 5px">音标入门 · 连读技巧 · 语调训练 · 口型纠正</div><div class="bb" style="height:5px"><div class="bf" style="width:72%;background:linear-gradient(90deg,#66bb6a,#43a047)"></div></div></div>
+<span style="color:var(--t3);font-size:14px">›</span>
+</div>
+<div class="cd" style="margin:0;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer" onclick="showModal('modal-exercise')">
+<div style="width:44px;height:44px;border-radius:14px;background:#e3f2fd;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+<div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-weight:700;font-size:13px">语法专项</span><span style="font-size:12px;font-weight:700;color:#1565c0">80%</span></div><div style="font-size:10px;color:var(--t2);margin:3px 0 5px">时态 · 从句 · 虚拟语气 · 倒装句</div><div class="bb" style="height:5px"><div class="bf" style="width:80%;background:linear-gradient(90deg,#64b5f6,#1976d2)"></div></div></div>
+<span style="color:var(--t3);font-size:14px">›</span>
+</div>
+<div class="cd" style="margin:0;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer" onclick="showModal('modal-exercise')">
+<div style="width:44px;height:44px;border-radius:14px;background:#f3e5f5;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7b1fa2" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+<div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-weight:700;font-size:13px">词汇专项</span><span style="font-size:12px;font-weight:700;color:#7b1fa2">65%</span></div><div style="font-size:10px;color:var(--t2);margin:3px 0 5px">学术词汇 · 搭配用法 · 同义替换 · 词根词缀</div><div class="bb" style="height:5px"><div class="bf" style="width:65%;background:linear-gradient(90deg,#ba68c8,#7b1fa2)"></div></div></div>
+<span style="color:var(--t3);font-size:14px">›</span>
+</div>
+<div class="cd" style="margin:0;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer" onclick="showModal('modal-exercise')">
+<div style="width:44px;height:44px;border-radius:14px;background:#fff3e0;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+<div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-weight:700;font-size:13px">逻辑专项</span><span style="font-size:12px;font-weight:700;color:#e65100">55%</span></div><div style="font-size:10px;color:var(--t2);margin:3px 0 5px">论点构建 · 论据支撑 · 段落结构 · 因果关系</div><div class="bb" style="height:5px"><div class="bf" style="width:55%;background:linear-gradient(90deg,#ffb74d,#e65100)"></div></div></div>
+<span style="color:var(--t3);font-size:14px">›</span>
+</div>
+</div>
+<!-- 精品课程 -->
+<div class="cd">
+<div class="ct"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2" style="vertical-align:middle"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 10 3 12 0v-5"/></svg> 精品课程 <span class="mr">更多 →</span></div>
+<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px">
+<div style="min-width:140px;background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:12px;padding:12px;cursor:pointer"><div style="margin-bottom:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div><div style="font-size:12px;font-weight:600">雅思口语冲刺</div><div style="font-size:10px;color:var(--t2);margin-top:2px">12节 · 6小时</div><div style="display:flex;align-items:center;gap:4px;margin-top:6px"><div class="bb" style="flex:1;height:3px"><div class="bf" style="width:40%"></div></div><span style="font-size:9px;color:var(--t3)">40%</span></div></div>
+<div style="min-width:140px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:12px;padding:12px;cursor:pointer"><div style="margin-bottom:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div style="font-size:12px;font-weight:600">高分写作技巧</div><div style="font-size:10px;color:var(--t2);margin-top:2px">8节 · 4小时</div><div style="display:flex;align-items:center;gap:4px;margin-top:6px"><div class="bb" style="flex:1;height:3px"><div class="bf" style="width:25%"></div></div><span style="font-size:9px;color:var(--t3)">25%</span></div></div>
+<div style="min-width:140px;background:linear-gradient(135deg,#f3e5f5,#fce4ec);border-radius:12px;padding:12px;cursor:pointer"><div style="margin-bottom:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div style="font-size:12px;font-weight:600">学术词汇精讲</div><div style="font-size:10px;color:var(--t2);margin-top:2px">20节 · 10小时</div><div style="display:flex;align-items:center;gap:4px;margin-top:6px"><div class="bb" style="flex:1;height:3px"><div class="bf" style="width:60%"></div></div><span style="font-size:9px;color:var(--t3)">60%</span></div></div>
+</div>
+</div>
+<div style="height:14px"></div>
+<!-- 专项练习弹窗 -->
+<div class="modal-overlay" id="modal-exercise">
+<div class="modal">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-exercise')">✕</button>
+<div style="display:flex;gap:6px;margin-bottom:6px"><span class="tg tg-b">语法</span><span class="tg tg-o">中级</span></div>
+<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">选择正确的时态形式</h3>
+<div style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;color:var(--t1);line-height:1.7">By the time we arrived at the station, the train _____ already _____.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:10px;cursor:pointer;border:2px solid transparent"><input type="radio" name="answer" style="accent-color:var(--p)"/><span style="font-size:13px">has ... left</span></label>
+<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f0f4ff;border-radius:10px;cursor:pointer;border:2px solid var(--p)"><input type="radio" name="answer" checked style="accent-color:var(--p)"/><span style="font-size:13px;font-weight:500">had ... left</span></label>
+<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:10px;cursor:pointer;border:2px solid transparent"><input type="radio" name="answer" style="accent-color:var(--p)"/><span style="font-size:13px">was ... leaving</span></label>
+<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:10px;cursor:pointer;border:2px solid transparent"><input type="radio" name="answer" style="accent-color:var(--p)"/><span style="font-size:13px">would ... leave</span></label>
+</div>
+<button class="btn" onclick="hideModal('modal-exercise');showModal('modal-exercise-result')">提交答案</button>
+</div>
+</div>
+</div>
+<!-- 每日一练弹窗 -->
+<div class="modal-overlay" id="modal-daily-practice">
+<div class="modal">
+<div style="position:relative">
+<button class="modal-close" onclick="hideModal('modal-daily-practice')">✕</button>
+<div style="display:flex;gap:6px;margin-bottom:6px"><span class="tg tg-o">逻辑</span><span class="tg tg-b">AI推荐</span></div>
+<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">论证结构练习</h3>
+<div style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;color:var(--t1);line-height:1.7">请为以下论点补充一个有力的论据：<br><br><strong>"Remote work increases productivity."</strong></div>
+</div>
+<div style="background:#fff8e1;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#e65100"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5" style="vertical-align:middle"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> 提示：可以从数据统计、案例研究或逻辑推理角度论证</div>
+<textarea placeholder="输入你的论据..." style="width:100%;padding:12px;border:1px solid var(--bm);border-radius:12px;font-size:13px;min-height:80px;resize:none;outline:none;font-family:inherit"></textarea>
+<button class="btn" style="margin-top:12px" onclick="hideModal('modal-daily-practice');showModal('modal-exercise-result')">提交答案</button>
+</div>
+</div>
+</div>
+<!-- 练习结果弹窗 -->
+<div class="modal-overlay" id="modal-exercise-result">
+<div class="modal modal-sm" style="margin-top:auto;margin-bottom:auto;text-align:center">
+<div style="position:relative;padding:10px 0">
+<button class="modal-close" onclick="hideModal('modal-exercise-result')">✕</button>
+<div style="margin-bottom:8px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+<div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px">回答正确！</div>
+<div style="font-size:12px;color:var(--t3);margin-bottom:14px">+10 积分</div>
+<div style="background:var(--bg);border-radius:12px;padding:12px;text-align:left;margin-bottom:14px">
+<div style="font-size:11px;font-weight:600;color:var(--t1);margin-bottom:4px">参考答案</div>
+<div style="font-size:11px;color:var(--t2);line-height:1.6">"had ... left" 是过去完成时，表示在过去某个时间点之前已经完成的动作。"By the time" 是典型的过去完成时标志词。</div>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btn-o" style="flex:1" onclick="hideModal('modal-exercise-result')">返回</button>
+<button class="btn" style="flex:1" onclick="hideModal('modal-exercise-result')">下一题</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 页面8：登录/注册 Login ========== -->
+<div class="pg" id="p-login">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px 24px">
+<div style="text-align:center;margin-bottom:30px">
+<div style="width:72px;height:72px;background:linear-gradient(135deg,var(--p),var(--pl));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 8px 24px rgba(74,108,247,.25)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 10 3 12 0v-5"/></svg></div>
+<h1 style="font-size:22px;font-weight:800;color:var(--t1)">AI口语·作文教练</h1>
+<p style="font-size:12px;color:var(--t3);margin-top:4px">智能英语学习，让进步看得见</p>
+</div>
+<div class="tab-sw" id="login-tabs">
+<span class="on" onclick="switchLoginTab(this,'login')">登录</span>
+<span onclick="switchLoginTab(this,'register')">注册</span>
+</div>
+<div id="login-form">
+<div style="margin-bottom:12px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">用户名 / 邮箱</label>
+<input type="text" placeholder="请输入用户名或邮箱" value="demo" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<div style="margin-bottom:16px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">密码</label>
+<input type="password" placeholder="请输入密码" value="demo123" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<button class="btn" style="padding:13px;font-size:15px" onclick="go('p-home')">登 录</button>
+</div>
+<div id="register-form" style="display:none">
+<div style="margin-bottom:10px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">用户名</label>
+<input type="text" placeholder="3-20个字符" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<div style="margin-bottom:10px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">邮箱</label>
+<input type="email" placeholder="请输入邮箱地址" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<div style="margin-bottom:10px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">密码</label>
+<input type="password" placeholder="至少6位，包含字母和数字" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<div style="margin-bottom:16px">
+<label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">确认密码</label>
+<input type="password" placeholder="再次输入密码" style="width:100%;padding:12px 16px;border:1px solid var(--bm);border-radius:12px;font-size:13px;outline:none;background:#fff"/>
+</div>
+<button class="btn" style="padding:13px;font-size:15px" onclick="go('p-home')">注 册</button>
+</div>
+<div style="margin-top:16px;background:var(--bg);border-radius:12px;padding:12px;text-align:center">
+<div style="font-size:11px;color:var(--t3)">演示账号</div>
+<div style="font-size:12px;color:var(--t1);margin-top:4px">用户名：<strong>demo</strong> · 密码：<strong>demo123</strong></div>
+</div>
+<div style="text-align:center;margin-top:20px;font-size:10px;color:var(--t3)">
+登录即表示同意 <span style="color:var(--p)">用户协议</span> 和 <span style="color:var(--p)">隐私政策</span>
+</div>
+</div>
+</div>
+
+</div><!-- /pages -->
+
+<!-- ========== 底部导航栏 TabBar ========== -->
+<div class="tbar" id="main-tabbar">
+<button class="ti on" onclick="go('p-home')"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>首页</button>
+<button class="ti" onclick="go('p-speak')"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></span>口语</button>
+<button class="ti" onclick="go('p-write')"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>作文</button>
+<button class="ti" onclick="go('p-report')"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>学习</button>
+<button class="ti" onclick="go('p-profile')"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>我的</button>
+</div>
+</div>
+
+<script>
+function go(id) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('on');
+  const tabbar = document.getElementById('main-tabbar');
+  const tabMap = {'p-home':0,'p-speak':1,'p-write':2,'p-report':3,'p-profile':4};
+  document.querySelectorAll('.tbar .ti').forEach((btn, i) => {
+    btn.classList.remove('on');
+    if (tabMap[id] === i) btn.classList.add('on');
+  });
+  if (id === 'p-login') {
+    tabbar.style.display = 'none';
+  } else {
+    tabbar.style.display = 'flex';
+  }
+}
+
+function showModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.add('on');
+}
+function hideModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('on');
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('on');
+  });
+});
+
+function switchSpeakTab(el) {
+  document.querySelectorAll('#speak-tabs .stab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function switchWriteMode(el) {
+  el.parentElement.querySelectorAll('span').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function switchReportTab(el) {
+  el.parentElement.querySelectorAll('span').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function switchLoginTab(el, type) {
+  el.parentElement.querySelectorAll('span').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('login-form').style.display = type === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = type === 'register' ? 'block' : 'none';
+}
+
+function selectExamType(el) {
+  document.querySelectorAll('.exam-type-card').forEach(c => {
+    c.style.border = '2px solid transparent';
+    c.style.background = '#fff';
+  });
+  el.style.border = '2px solid var(--p)';
+  el.style.background = '#f0f4ff';
+}
+
+function sendSpeakMsg() {
+  const input = document.getElementById('speak-input');
+  const chat = document.getElementById('speak-chat');
+  const text = input.value.trim();
+  if (!text) return;
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg us';
+  userMsg.innerHTML = text + '<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:3px">' + time + '</div>';
+  chat.appendChild(userMsg);
+  input.value = '';
+  setTimeout(() => {
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg ai';
+    aiMsg.innerHTML = "That's a great point! Your expression is clear and natural. Let me suggest a more advanced way to phrase that: you could use more complex sentence structures to elevate your response. Keep practicing!" + '<div style="font-size:10px;color:var(--t3);margin-top:3px">' + time + '</div>';
+    chat.appendChild(aiMsg);
+    chat.scrollTop = chat.scrollHeight;
+  }, 800);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+document.getElementById('speak-input')?.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') sendSpeakMsg();
+});
+</script>
+</body>
+</html>

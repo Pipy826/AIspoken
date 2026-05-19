@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI口语·作文教练</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4A6CF7',
+                        'primary-light': '#EEF1FF',
+                        'primary-dark': '#3B5CE5',
+                        bg: '#f7f8fc',
+                        surface: '#ffffff',
+                        'text-primary': '#1a1a1a',
+                        'text-secondary': '#666666',
+                        'text-tertiary': '#999999',
+                        success: '#34C759',
+                        warning: '#FF9500',
+                        danger: '#FF3B30',
+                        'gradient-start': '#4A6CF7',
+                        'gradient-end': '#6B8CFF',
+                    },
+                    borderRadius: {
+                        'card': '16px',
+                        'btn': '12px',
+                        'input': '24px',
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { background: #e5e5ea; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; }
+        .phone-frame { max-width: 430px; margin: 0 auto; background: #f7f8fc; min-height: 100vh; position: relative; overflow-x: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.1); }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 100; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: flex-end; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 24px 24px 0 0; width: 100%; max-width: 430px; max-height: 85vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+        .progress-ring { transform: rotate(-90deg); }
+        .chat-bubble-left { position: relative; border-radius: 16px 16px 16px 4px; }
+        .chat-bubble-right { position: relative; border-radius: 16px 16px 4px 16px; }
+        .radar-polygon { fill: rgba(74, 108, 247, 0.1); stroke: #4A6CF7; stroke-width: 2; }
+        .bar-chart { transition: height 0.6s ease; }
+        .gradient-header { background: linear-gradient(135deg, #4A6CF7 0%, #6B8CFF 100%); }
+        .tag-scroll { scroll-snap-type: x mandatory; }
+        .tag-scroll > * { scroll-snap-align: start; }
+        .ripple { position: relative; overflow: hidden; }
+        .ripple::after { content: ''; position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; background-image: radial-gradient(circle, rgba(255,255,255,0.3) 10%, transparent 10.01%); background-repeat: no-repeat; background-position: 50%; transform: scale(10, 10); opacity: 0; transition: transform 0.5s, opacity 0.5s; }
+        .ripple:active::after { transform: scale(0, 0); opacity: 0.3; transition: 0s; }
+        .typing-dot { animation: typing 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+        .badge-shine { position: relative; overflow: hidden; }
+        .badge-shine::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to bottom right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%); transform: rotate(45deg) translateY(-100%); transition: transform 0.6s; }
+        .badge-shine:hover::before { transform: rotate(45deg) translateY(100%); }
+        .sticky-header { position: sticky; top: 0; z-index: 50; background: rgba(247,248,252,0.95); backdrop-filter: blur(10px); }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="phone-frame pb-20">
+        <!-- 状态栏模拟 -->
+        <div class="sticky-header px-6 pt-3 pb-2 flex justify-between items-center text-xs font-semibold text-text-primary">
+            <span id="clock">9:41</span>
+            <div class="flex items-center gap-1">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <!-- ==================== 页面1：首页 ==================== -->
+        <div id="page-home" class="page active px-5 pt-2">
+            <!-- 头部问候 -->
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <p class="text-text-tertiary text-sm mb-1">早上好 👋</p>
+                    <h1 class="text-2xl font-bold text-text-primary">Alex</h1>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow-lg cursor-pointer" onclick="navigateTo('profile')">
+                    A
+                </div>
+            </div>
+
+            <!-- 月度目标环形进度 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-text-primary">5月学习目标</h3>
+                    <span class="text-xs text-primary bg-primary-light px-2 py-1 rounded-full">雅思 7.0</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <div class="relative w-20 h-20 flex-shrink-0">
+                        <svg class="w-20 h-20 progress-ring">
+                            <circle cx="40" cy="40" r="36" fill="none" stroke="#E5E5EA" stroke-width="6"/>
+                            <circle cx="40" cy="40" r="36" fill="none" stroke="#4A6CF7" stroke-width="6" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="56"/>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-lg font-bold text-primary">75%</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-text-secondary">已完成</span>
+                            <span class="font-semibold text-text-primary">22/30 天</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                            <div class="bg-primary h-2 rounded-full" style="width: 73%"></div>
+                        </div>
+                        <p class="text-xs text-text-tertiary">再坚持8天即可达成月度目标 🎯</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 近14天打卡 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-text-primary">近14天打卡</h3>
+                    <span class="text-xs text-success"><i class="fas fa-fire mr-1"></i>连续 12 天</span>
+                </div>
+                <div class="flex justify-between items-end" id="checkin-container">
+                    <!-- JS生成 -->
+                </div>
+                <div class="flex justify-center gap-4 mt-3 text-xs">
+                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-primary"></div><span class="text-text-secondary">已打卡</span></div>
+                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-warning"></div><span class="text-text-secondary">今日</span></div>
+                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-gray-200"></div><span class="text-text-secondary">未打卡</span></div>
+                </div>
+            </div>
+
+            <!-- 本周统计 -->
+            <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="bg-surface rounded-card p-4 shadow-sm text-center">
+                    <p class="text-2xl font-bold text-primary">12</p>
+                    <p class="text-xs text-text-secondary mt-1">连续天数</p>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm text-center">
+                    <p class="text-2xl font-bold text-primary">48</p>
+                    <p class="text-xs text-text-secondary mt-1">练习次数</p>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm text-center">
+                    <p class="text-2xl font-bold text-primary">326</p>
+                    <p class="text-xs text-text-secondary mt-1">学习分钟</p>
+                </div>
+            </div>
+
+            <!-- 快捷功能入口 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-4">
+                <h3 class="font-bold text-text-primary mb-4">快速开始</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-primary-light rounded-btn p-4 cursor-pointer ripple" onclick="navigateTo('speak')">
+                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                            <i class="fas fa-microphone text-primary"></i>
+                        </div>
+                        <p class="font-semibold text-sm text-text-primary">口语练习</p>
+                        <p class="text-xs text-text-tertiary mt-1">剩余 8 次</p>
+                    </div>
+                    <div class="bg-orange-50 rounded-btn p-4 cursor-pointer ripple" onclick="navigateTo('write')">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mb-2">
+                            <i class="fas fa-pen text-orange-500"></i>
+                        </div>
+                        <p class="font-semibold text-sm text-text-primary">作文批改</p>
+                        <p class="text-xs text-text-tertiary mt-1">剩余 5 次</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-btn p-4 cursor-pointer ripple" onclick="openModal('exam-modal')">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                            <i class="fas fa-clipboard-check text-purple-500"></i>
+                        </div>
+                        <p class="font-semibold text-sm text-text-primary">全真模考</p>
+                        <p class="text-xs text-text-tertiary mt-1">模拟真实考场</p>
+                    </div>
+                    <div class="bg-green-50 rounded-btn p-4 cursor-pointer ripple" onclick="navigateTo('improve')">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                            <i class="fas fa-chart-line text-green-500"></i>
+                        </div>
+                        <p class="font-semibold text-sm text-text-primary">专项训练</p>
+                        <p class="text-xs text-text-tertiary mt-1">AI 智能推荐</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速练习 -->
+            <div class="mb-4">
+                <h3 class="font-bold text-text-primary mb-3 px-1">快速练习</h3>
+                <div class="flex gap-3 overflow-x-auto hide-scrollbar tag-scroll pb-2">
+                    <div class="flex-shrink-0 bg-surface rounded-btn p-4 shadow-sm w-36 cursor-pointer" onclick="navigateTo('speak')">
+                        <div class="text-2xl mb-2">🎯</div>
+                        <p class="font-semibold text-sm">雅思口语</p>
+                        <p class="text-xs text-text-tertiary mt-1">Part 2 话题</p>
+                    </div>
+                    <div class="flex-shrink-0 bg-surface rounded-btn p-4 shadow-sm w-36 cursor-pointer" onclick="navigateTo('write')">
+                        <div class="text-2xl mb-2">✍️</div>
+                        <p class="font-semibold text-sm">议论文批改</p>
+                        <p class="text-xs text-text-tertiary mt-1">教育类话题</p>
+                    </div>
+                    <div class="flex-shrink-0 bg-surface rounded-btn p-4 shadow-sm w-36 cursor-pointer" onclick="navigateTo('speak')">
+                        <div class="text-2xl mb-2">🗣️</div>
+                        <p class="font-semibold text-sm">发音纠正</p>
+                        <p class="text-xs text-text-tertiary mt-1">/θ/ /ð/ 专项</p>
+                    </div>
+                    <div class="flex-shrink-0 bg-surface rounded-btn p-4 shadow-sm w-36 cursor-pointer" onclick="navigateTo('improve')">
+                        <div class="text-2xl mb-2">📚</div>
+                        <p class="font-semibold text-sm">错题复习</p>
+                        <p class="text-xs text-text-tertiary mt-1">3 道待复习</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今日推荐 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-text-primary">AI 今日推荐</h3>
+                    <span class="text-xs text-primary">基于你的弱项</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3 p-3 bg-primary-light rounded-btn cursor-pointer" onclick="navigateTo('speak')">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm">🎯</div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-text-primary">逻辑连接词专项训练</p>
+                            <p class="text-xs text-text-secondary mt-0.5">你的作文中 however 使用过多，建议学习替代表达</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-orange-50 rounded-btn cursor-pointer" onclick="navigateTo('speak')">
+                        <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm">🗣️</div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-text-primary">口语流利度提升</p>
+                            <p class="text-xs text-text-secondary mt-0.5">最近流利度评分下降，建议进行影子跟读练习</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面2：口语陪练 ==================== -->
+        <div id="page-speak" class="page">
+            <!-- 顶部栏 -->
+            <div class="sticky-header px-5 py-3 flex justify-between items-center">
+                <button onclick="navigateTo('home')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                    <i class="fas fa-chevron-left text-text-secondary text-sm"></i>
+                </button>
+                <h2 class="font-bold text-text-primary">口语陪练</h2>
+                <button onclick="openModal('score-detail-modal')" class="text-primary text-sm font-medium">评分详情</button>
+            </div>
+
+            <!-- 场景标签 -->
+            <div class="px-5 mb-4">
+                <div class="flex gap-2 overflow-x-auto hide-scrollbar tag-scroll py-1" id="scene-tags">
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium transition-all">自由对话</button>
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-white text-text-secondary text-sm font-medium border border-gray-200 transition-all">职场面试</button>
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-white text-text-secondary text-sm font-medium border border-gray-200 transition-all">雅思模考</button>
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-white text-text-secondary text-sm font-medium border border-gray-200 transition-all">旅行出行</button>
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-white text-text-secondary text-sm font-medium border border-gray-200 transition-all">商务谈判</button>
+                    <button class="scene-tag flex-shrink-0 px-4 py-2 rounded-full bg-white text-text-secondary text-sm font-medium border border-gray-200 transition-all">校园生活</button>
+                </div>
+            </div>
+
+            <!-- AI角色卡 -->
+            <div class="px-5 mb-4">
+                <div class="bg-gradient-to-r from-primary to-blue-400 rounded-card p-4 text-white shadow-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-3xl backdrop-blur-sm">🐟</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold">小鱼 Coach</h3>
+                                <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">在线</span>
+                            </div>
+                            <p class="text-sm text-white/80 mt-0.5">当前场景：自由对话</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">7.5</p>
+                            <p class="text-xs text-white/70">实时评分</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对话区域 -->
+            <div class="px-5 mb-4 space-y-4" id="chat-container">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-sm">🐟</div>
+                    <div class="chat-bubble-left bg-white p-3 shadow-sm max-w-[80%]">
+                        <p class="text-sm text-text-primary">Hello Alex! Welcome back. How was your day? Shall we practice some daily conversation today?</p>
+                        <p class="text-xs text-text-tertiary mt-1">10:23</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <div class="chat-bubble-right bg-primary text-white p-3 shadow-sm max-w-[80%]">
+                        <p class="text-sm">Hi! I'm doing great. I just finished my classes and I'm ready to practice. I want to improve my fluency.</p>
+                        <p class="text-xs text-white/70 mt-1 text-right">10:24</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-sm">🐟</div>
+                    <div class="chat-bubble-left bg-white p-3 shadow-sm max-w-[80%]">
+                        <p class="text-sm text-text-primary">That's a great goal! Let's start with a simple topic. Tell me about your favorite hobby and why you enjoy it.</p>
+                        <p class="text-xs text-text-tertiary mt-1">10:24</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地道表达提示 -->
+            <div class="px-5 mb-4">
+                <div class="bg-green-50 border border-green-200 rounded-card p-4">
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-lightbulb text-green-500 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-semibold text-green-700">地道表达提示</p>
+                            <p class="text-xs text-green-600 mt-1">"I'm doing great" 可以替换为 "I'm doing fantastic" 或 "Can't complain" 让表达更自然</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实时评分 -->
+            <div class="px-5 mb-24">
+                <div class="bg-surface rounded-card p-4 shadow-sm">
+                    <h4 class="font-semibold text-sm text-text-primary mb-3">实时评分</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">发音</span><span class="font-semibold text-text-primary">7.0</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: 70%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">语法</span><span class="font-semibold text-text-primary">8.0</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: 80%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">词汇</span><span class="font-semibold text-text-primary">7.5</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: 75%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">流利度</span><span class="font-semibold text-text-primary">6.5</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-warning h-1.5 rounded-full" style="width: 65%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部输入栏 -->
+            <div class="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 py-3 bg-white/95 backdrop-blur border-t border-gray-100">
+                <div class="flex items-center gap-2">
+                    <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-text-secondary ripple">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <input type="text" placeholder="输入消息..." class="flex-1 bg-gray-100 rounded-input px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                    <button class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white ripple">
+                        <i class="fas fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面3：作文批改 ==================== -->
+        <div id="page-write" class="page">
+            <div class="sticky-header px-5 py-3 flex justify-between items-center">
+                <button onclick="navigateTo('home')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                    <i class="fas fa-chevron-left text-text-secondary text-sm"></i>
+                </button>
+                <h2 class="font-bold text-text-primary">作文批改</h2>
+                <button class="text-primary text-sm font-medium" onclick="openModal('topic-modal')">换题</button>
+            </div>
+
+            <!-- 题目区域 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-4 shadow-sm cursor-pointer" onclick="openModal('topic-modal')">
+                    <div class="flex gap-2 mb-2">
+                        <span class="text-xs bg-primary-light text-primary px-2 py-0.5 rounded">雅思</span>
+                        <span class="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">议论文</span>
+                    </div>
+                    <p class="text-sm text-text-primary font-medium leading-relaxed">Some people think that the best way to reduce crime is to give longer prison sentences. To what extent do you agree or disagree?</p>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-4 shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-text-tertiary">实时字数统计</span>
+                        <span class="text-xs font-semibold text-primary" id="word-count">245 / 250 字</span>
+                    </div>
+                    <textarea class="w-full h-48 bg-gray-50 rounded-btn p-3 text-sm text-text-primary outline-none resize-none focus:ring-2 focus:ring-primary/20" placeholder="在此输入你的作文...">In recent years, the issue of crime reduction has become increasingly prominent in public discourse. While some argue that extending prison sentences is the most effective method, I partially agree with this view but believe that alternative approaches should also be considered.
+
+On the one hand, longer prison terms can serve as a powerful deterrent...</textarea>
+                </div>
+            </div>
+
+            <!-- 批改模式 -->
+            <div class="px-5 mb-4">
+                <div class="flex bg-gray-100 rounded-input p-1">
+                    <button class="flex-1 py-2 rounded-full bg-white text-primary text-sm font-medium shadow-sm transition-all" id="mode-quick">快速批改</button>
+                    <button class="flex-1 py-2 rounded-full text-text-secondary text-sm font-medium transition-all" id="mode-deep">深度批改</button>
+                </div>
+            </div>
+
+            <!-- 批改结果（模拟展开） -->
+            <div class="px-5 mb-24">
+                <div class="bg-surface rounded-card p-5 shadow-sm">
+                    <!-- 圆环评分 -->
+                    <div class="flex flex-col items-center mb-5">
+                        <div class="relative w-28 h-28 mb-2">
+                            <svg class="w-28 h-28 progress-ring">
+                                <circle cx="56" cy="56" r="50" fill="none" stroke="#E5E5EA" stroke-width="8"/>
+                                <circle cx="56" cy="56" r="50" fill="none" stroke="#4A6CF7" stroke-width="8" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="94"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-bold text-primary">7.0</span>
+                                <span class="text-xs text-text-tertiary">满分 9.0</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-secondary">总体评价：良好，逻辑清晰但词汇多样性有待提升</p>
+                    </div>
+
+                    <!-- 四维评分 -->
+                    <div class="grid grid-cols-2 gap-3 mb-5">
+                        <div class="bg-primary-light rounded-btn p-3">
+                            <p class="text-xs text-text-secondary mb-1">语法</p>
+                            <p class="text-xl font-bold text-primary">7.5</p>
+                            <div class="w-full bg-white rounded-full h-1 mt-2"><div class="bg-primary h-1 rounded-full" style="width: 83%"></div></div>
+                        </div>
+                        <div class="bg-orange-50 rounded-btn p-3">
+                            <p class="text-xs text-text-secondary mb-1">逻辑</p>
+                            <p class="text-xl font-bold text-orange-500">7.0</p>
+                            <div class="w-full bg-white rounded-full h-1 mt-2"><div class="bg-orange-500 h-1 rounded-full" style="width: 78%"></div></div>
+                        </div>
+                        <div class="bg-purple-50 rounded-btn p-3">
+                            <p class="text-xs text-text-secondary mb-1">词汇</p>
+                            <p class="text-xl font-bold text-purple-500">6.5</p>
+                            <div class="w-full bg-white rounded-full h-1 mt-2"><div class="bg-purple-500 h-1 rounded-full" style="width: 72%"></div></div>
+                        </div>
+                        <div class="bg-blue-50 rounded-btn p-3">
+                            <p class="text-xs text-text-secondary mb-1">结构</p>
+                            <p class="text-xl font-bold text-blue-500">7.5</p>
+                            <div class="w-full bg-white rounded-full h-1 mt-2"><div class="bg-blue-500 h-1 rounded-full" style="width: 83%"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- 四层批改梯度 -->
+                    <div class="space-y-2 mb-5">
+                        <div class="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span class="text-xs text-green-700 font-medium">基础纠错</span>
+                            <span class="text-xs text-green-600">3 处已修正</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                            <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                            <span class="text-xs text-orange-700 font-medium">语言优化</span>
+                            <span class="text-xs text-orange-600">5 处建议</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span class="text-xs text-blue-700 font-medium">结构逻辑</span>
+                            <span class="text-xs text-blue-600">2 处建议</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                            <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                            <span class="text-xs text-purple-700 font-medium">文体适配</span>
+                            <span class="text-xs text-purple-600">1 处建议</span>
+                        </div>
+                    </div>
+
+                    <!-- 批注预览 -->
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-sm mb-2">批注预览</h4>
+                        <div class="bg-gray-50 rounded-btn p-3 text-sm leading-relaxed">
+                            <p class="text-text-primary">...the issue of crime reduction has become <span class="bg-green-200 px-1 rounded cursor-pointer relative group">increasingly prominent<span class="hidden group-hover:block absolute bottom-full left-0 bg-gray-800 text-white text-xs p-2 rounded mb-1 whitespace-nowrap z-10">词汇升级：increasingly prevalent</span></span> in public discourse...</p>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="py-3 bg-primary text-white rounded-btn font-medium text-sm ripple">查看优化方案</button>
+                        <button class="py-3 bg-gray-100 text-text-primary rounded-btn font-medium text-sm ripple">复制优化版</button>
+                    </div>
+                    <div class="flex gap-3 mt-3">
+                        <button class="flex-1 py-2.5 border border-gray-200 text-text-secondary rounded-btn text-sm">加入错题本</button>
+                        <button class="flex-1 py-2.5 border border-gray-200 text-text-secondary rounded-btn text-sm">范文参考</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面4：学习报告 ==================== -->
+        <div id="page-report" class="page px-5 pt-2">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-text-primary">学习报告</h1>
+                <div class="flex bg-gray-100 rounded-input p-1">
+                    <button class="time-tab px-3 py-1 rounded-full bg-white text-primary text-xs font-medium shadow-sm">周</button>
+                    <button class="time-tab px-3 py-1 rounded-full text-text-secondary text-xs font-medium">月</button>
+                    <button class="time-tab px-3 py-1 rounded-full text-text-secondary text-xs font-medium">年</button>
+                </div>
+            </div>
+
+            <!-- 雷达图 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-4">
+                <h3 class="font-bold text-text-primary mb-4">六维能力评估</h3>
+                <div class="flex justify-center">
+                    <svg width="240" height="200" viewBox="0 0 240 200">
+                        <!-- 背景网格 -->
+                        <g transform="translate(120, 100)">
+                            <polygon points="0,-80 69.28,-40 69.28,40 0,80 -69.28,40 -69.28,-40" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+                            <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+                            <polygon points="0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+                            <polygon points="0,-20 17.32,-10 17.32,10 0,20 -17.32,10 -17.32,-10" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+                            <!-- 数据层 -->
+                            <polygon points="0,-70 55,-35 60,25 0,65 -50,30 -55,-25" class="radar-polygon"/>
+                            <!-- 顶点 -->
+                            <circle cx="0" cy="-70" r="3" fill="#4A6CF7"/>
+                            <circle cx="55" cy="-35" r="3" fill="#4A6CF7"/>
+                            <circle cx="60" cy="25" r="3" fill="#4A6CF7"/>
+                            <circle cx="0" cy="65" r="3" fill="#4A6CF7"/>
+                            <circle cx="-50" cy="30" r="3" fill="#4A6CF7"/>
+                            <circle cx="-55" cy="-25" r="3" fill="#4A6CF7"/>
+                            <!-- 标签 -->
+                            <text x="0" y="-90" text-anchor="middle" class="text-xs" fill="#666">发音</text>
+                            <text x="85" y="-40" text-anchor="middle" class="text-xs" fill="#666">语法</text>
+                            <text x="85" y="35" text-anchor="middle" class="text-xs" fill="#666">词汇</text>
+                            <text x="0" y="95" text-anchor="middle" class="text-xs" fill="#666">流利度</text>
+                            <text x="-85" y="35" text-anchor="middle" class="text-xs" fill="#666">写作</text>
+                            <text x="-85" y="-40" text-anchor="middle" class="text-xs" fill="#666">逻辑</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 学习时长柱状图 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-4">
+                <h3 class="font-bold text-text-primary mb-4">本周学习时长</h3>
+                <div class="flex items-end justify-between h-32 px-2">
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">30</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 30%"></div>
+                        <span class="text-xs text-text-secondary">周一</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">45</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 45%"></div>
+                        <span class="text-xs text-text-secondary">周二</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">60</span>
+                        <div class="w-6 bg-primary rounded-t-full bar-chart" style="height: 60%"></div>
+                        <span class="text-xs text-text-secondary font-semibold">周三</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">25</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 25%"></div>
+                        <span class="text-xs text-text-secondary">周四</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">50</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 50%"></div>
+                        <span class="text-xs text-text-secondary">周五</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">40</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 40%"></div>
+                        <span class="text-xs text-text-secondary">周六</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-1">
+                        <span class="text-xs text-text-tertiary">35</span>
+                        <div class="w-6 bg-gray-200 rounded-t-full bar-chart" style="height: 35%"></div>
+                        <span class="text-xs text-text-secondary">周日</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 趋势对比 -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-surface rounded-card p-4 shadow-sm">
+                    <p class="text-xs text-text-secondary mb-1">口语评分趋势</p>
+                    <p class="text-xl font-bold text-primary">7.2 <span class="text-xs text-success font-normal">↑ 0.3</span></p>
+                    <div class="flex items-end gap-1 mt-2 h-8">
+                        <div class="w-2 bg-primary/30 rounded-t" style="height: 60%"></div>
+                        <div class="w-2 bg-primary/30 rounded-t" style="height: 70%"></div>
+                        <div class="w-2 bg-primary/30 rounded-t" style="height: 65%"></div>
+                        <div class="w-2 bg-primary/30 rounded-t" style="height: 80%"></div>
+                        <div class="w-2 bg-primary rounded-t" style="height: 90%"></div>
+                    </div>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm">
+                    <p class="text-xs text-text-secondary mb-1">作文评分趋势</p>
+                    <p class="text-xl font-bold text-orange-500">6.8 <span class="text-xs text-success font-normal">↑ 0.5</span></p>
+                    <div class="flex items-end gap-1 mt-2 h-8">
+                        <div class="w-2 bg-orange-200 rounded-t" style="height: 50%"></div>
+                        <div class="w-2 bg-orange-200 rounded-t" style="height: 55%"></div>
+                        <div class="w-2 bg-orange-200 rounded-t" style="height: 60%"></div>
+                        <div class="w-2 bg-orange-200 rounded-t" style="height: 70%"></div>
+                        <div class="w-2 bg-orange-500 rounded-t" style="height: 85%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 错题本入口 -->
+            <div class="bg-surface rounded-card p-4 shadow-sm mb-4 cursor-pointer" onclick="openModal('error-book-modal')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <i class="fas fa-book-open text-red-500"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">错题本</p>
+                            <p class="text-xs text-text-secondary">12 道错题待复习</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-text-tertiary"></i>
+                </div>
+            </div>
+
+            <!-- 成就徽章 -->
+            <div class="mb-4">
+                <h3 class="font-bold text-text-primary mb-3">学习成就</h3>
+                <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                    <div class="flex-shrink-0 w-20 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-yellow-100 flex items-center justify-center text-2xl mb-1 badge-shine">🏆</div>
+                        <p class="text-xs text-text-secondary">首练达成</p>
+                    </div>
+                    <div class="flex-shrink-0 w-20 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-primary-light flex items-center justify-center text-2xl mb-1 badge-shine">🔥</div>
+                        <p class="text-xs text-text-secondary">7天连续</p>
+                    </div>
+                    <div class="flex-shrink-0 w-20 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-purple-100 flex items-center justify-center text-2xl mb-1 badge-shine">⭐</div>
+                        <p class="text-xs text-text-secondary">满分作文</p>
+                    </div>
+                    <div class="flex-shrink-0 w-20 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center text-2xl mb-1 badge-shine">🎯</div>
+                        <p class="text-xs text-text-secondary">精准命中</p>
+                    </div>
+                    <div class="flex-shrink-0 w-20 text-center opacity-50">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-2xl mb-1">💎</div>
+                        <p class="text-xs text-text-secondary">未解锁</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI洞察 -->
+            <div class="bg-gradient-to-r from-primary/5 to-blue-50 rounded-card p-4 border border-primary/10 mb-6">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-robot text-primary mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-primary">AI 数据洞察</p>
+                        <p class="text-xs text-text-secondary mt-1">你的写作能力在过去两周提升了 15%，但口语流利度波动较大。建议增加每日影子跟读练习，重点关注连接词的自然使用。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面5：个人中心 ==================== -->
+        <div id="page-profile" class="page">
+            <!-- 渐变头部 -->
+            <div class="gradient-header px-5 pt-8 pb-12 rounded-b-[32px]">
+                <div class="flex justify-between items-start mb-6">
+                    <button onclick="navigateTo('home')" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white">
+                        <i class="fas fa-chevron-left text-sm"></i>
+                    </button>
+                    <button class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white" onclick="openModal('settings-modal')">
+                        <i class="fas fa-cog text-sm"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-3xl backdrop-blur-sm border-2 border-white/30">👤</div>
+                    <div class="text-white">
+                        <h2 class="text-xl font-bold">Alex Chen</h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">VIP 会员</span>
+                            <span class="text-xs text-white/70">2026.12.30 到期</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据统计 -->
+            <div class="px-5 -mt-6 mb-4">
+                <div class="bg-surface rounded-card p-5 shadow-lg">
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-2xl font-bold text-primary">156</p>
+                            <p class="text-xs text-text-secondary mt-1">学习天数</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-primary">482</p>
+                            <p class="text-xs text-text-secondary mt-1">练习次数</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-primary">1280</p>
+                            <p class="text-xs text-text-secondary mt-1">累计分钟</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 能力评估 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-5 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-text-primary">能力综合评估</h3>
+                        <span class="text-xs bg-primary-light text-primary px-2 py-1 rounded-full">超越 72% 用户</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">发音</span><span class="font-semibold">Lv.6</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 75%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">语法</span><span class="font-semibold">Lv.7</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 85%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">词汇</span><span class="font-semibold">Lv.5</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-warning h-2 rounded-full" style="width: 65%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">流利度</span><span class="font-semibold">Lv.6</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 70%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">写作</span><span class="font-semibold">Lv.6</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 72%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-text-secondary">逻辑</span><span class="font-semibold">Lv.7</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 80%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学习数据图 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-5 shadow-sm">
+                    <h3 class="font-bold text-text-primary mb-3">近7天学习数据</h3>
+                    <div class="flex items-end justify-between h-24">
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 40%"></div><span class="text-[10px] text-text-tertiary mt-1">一</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 60%"></div><span class="text-[10px] text-text-tertiary mt-1">二</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 80%"></div><span class="text-[10px] text-text-tertiary mt-1">三</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 50%"></div><span class="text-[10px] text-text-tertiary mt-1">四</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 70%"></div><span class="text-[10px] text-text-tertiary mt-1">五</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary/20 rounded-t" style="height: 90%"></div><span class="text-[10px] text-text-tertiary mt-1">六</span></div>
+                        <div class="flex flex-col items-center flex-1"><div class="w-5 bg-primary rounded-t" style="height: 100%"></div><span class="text-[10px] text-primary font-semibold mt-1">日</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 错题本 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-4 shadow-sm">
+                    <h3 class="font-bold text-text-primary mb-3">错题 / 错音本</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-3 bg-red-50 rounded-btn">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">语法</span>
+                                <span class="text-sm text-text-primary">主谓一致错误</span>
+                            </div>
+                            <span class="text-xs text-text-tertiary">3次</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-orange-50 rounded-btn">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">发音</span>
+                                <span class="text-sm text-text-primary">/θ/ 音标纠正</span>
+                            </div>
+                            <span class="text-xs text-text-tertiary">5次</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能菜单 -->
+            <div class="px-5 mb-24">
+                <div class="bg-surface rounded-card shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer" onclick="openModal('goal-modal')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-primary"><i class="fas fa-bullseye text-sm"></i></div>
+                            <span class="text-sm text-text-primary">学习目标</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer" onclick="openModal('invite-modal')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-500"><i class="fas fa-user-plus text-sm"></i></div>
+                            <span class="text-sm text-text-primary">邀请好友</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500"><i class="fas fa-shopping-bag text-sm"></i></div>
+                            <span class="text-sm text-text-primary">我的订单</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-500"><i class="fas fa-star text-sm"></i></div>
+                            <span class="text-sm text-text-primary">我的收藏</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="p-4 flex items-center justify-between cursor-pointer" onclick="openModal('settings-modal')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-text-secondary"><i class="fas fa-cog text-sm"></i></div>
+                            <span class="text-sm text-text-primary">设置</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                </div>
+                <button class="w-full mt-4 py-3 bg-red-50 text-red-500 rounded-btn font-medium text-sm" onclick="navigateTo('login')">退出登录</button>
+            </div>
+        </div>
+
+        <!-- ==================== 页面6：全真模考 ==================== -->
+        <div id="page-exam" class="page">
+            <div class="sticky-header px-5 py-3 flex justify-between items-center">
+                <button onclick="navigateTo('home')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                    <i class="fas fa-chevron-left text-text-secondary text-sm"></i>
+                </button>
+                <h2 class="font-bold text-text-primary">全真模考</h2>
+                <div class="w-8"></div>
+            </div>
+
+            <!-- 考试类型选择 -->
+            <div class="px-5 mb-4">
+                <h3 class="font-bold text-text-primary mb-3">选择考试类型</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-primary" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">🌍</div>
+                        <p class="text-sm font-semibold">雅思</p>
+                        <p class="text-xs text-text-tertiary">IELTS</p>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-transparent" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">📚</div>
+                        <p class="text-sm font-semibold">托福</p>
+                        <p class="text-xs text-text-tertiary">TOEFL</p>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-transparent" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">🎓</div>
+                        <p class="text-sm font-semibold">四六级</p>
+                        <p class="text-xs text-text-tertiary">CET</p>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-transparent" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">🏫</div>
+                        <p class="text-sm font-semibold">高考</p>
+                        <p class="text-xs text-text-tertiary">Gaokao</p>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-transparent" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">📖</div>
+                        <p class="text-sm font-semibold">考研</p>
+                        <p class="text-xs text-text-tertiary">Postgrad</p>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm text-center cursor-pointer border-2 border-transparent" onclick="selectExam(this)">
+                        <div class="text-2xl mb-1">⚙️</div>
+                        <p class="text-sm font-semibold">自定义</p>
+                        <p class="text-xs text-text-tertiary">Custom</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 考试详情 -->
+            <div class="px-5 mb-4">
+                <div class="bg-surface rounded-card p-5 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-text-primary">雅思口语模拟测试</h3>
+                            <p class="text-xs text-text-secondary mt-1">时长：15 分钟 · 难度：中等</p>
+                        </div>
+                        <span class="text-xs bg-primary-light text-primary px-2 py-1 rounded-full">热门</span>
+                    </div>
+                    <p class="text-sm text-text-secondary leading-relaxed mb-4">模拟真实雅思口语考试流程，包含 Part 1 自我介绍、Part 2 话题陈述和 Part 3 深度讨论。AI 考官将根据官方评分标准进行实时评估。</p>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center gap-2 text-xs text-text-secondary"><i class="fas fa-check-circle text-success"></i><span>完全模拟真实考场环境</span></div>
+                        <div class="flex items-center gap-2 text-xs text-text-secondary"><i class="fas fa-check-circle text-success"></i><span>AI 实时评分与反馈</span></div>
+                        <div class="flex items-center gap-2 text-xs text-text-secondary"><i class="fas fa-check-circle text-success"></i><span>考后详细能力分析报告</span></div>
+                    </div>
+                    <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple" onclick="openModal('exam-start-modal')">开始模考</button>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div class="px-5 mb-24">
+                <h3 class="font-bold text-text-primary mb-3">历史模考记录</h3>
+                <div class="space-y-3">
+                    <div class="bg-surface rounded-card p-4 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-sm">雅思口语模考</p>
+                                <p class="text-xs text-text-tertiary mt-1">2026-05-15 · 14分钟</p>
+                            </div>
+                            <span class="text-lg font-bold text-primary">7.0</span>
+                        </div>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-sm">托福口语模考</p>
+                                <p class="text-xs text-text-tertiary mt-1">2026-05-10 · 16分钟</p>
+                            </div>
+                            <span class="text-lg font-bold text-primary">24/30</span>
+                        </div>
+                    </div>
+                    <div class="bg-surface rounded-card p-4 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-sm">雅思作文模考</p>
+                                <p class="text-xs text-text-tertiary mt-1">2026-05-08 · 40分钟</p>
+                            </div>
+                            <span class="text-lg font-bold text-orange-500">6.5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面7：专项提升 ==================== -->
+        <div id="page-improve" class="page px-5 pt-2">
+            <h1 class="text-2xl font-bold text-text-primary mb-4">专项提升</h1>
+
+            <!-- AI推荐卡片 -->
+            <div class="bg-gradient-to-r from-primary to-blue-400 rounded-card p-5 text-white shadow-lg mb-5">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs text-white/80 mb-1">AI 智能推荐</p>
+                        <h3 class="font-bold text-lg mb-2">今日弱项训练</h3>
+                        <p class="text-sm text-white/90 mb-3">根据你的学习数据，今日建议重点练习逻辑连接词的使用和发音清晰度。</p>
+                        <button class="bg-white text-primary px-4 py-2 rounded-full text-sm font-medium ripple" onclick="openModal('daily-practice-modal')">开始训练</button>
+                    </div>
+                    <div class="text-4xl">🎯</div>
+                </div>
+            </div>
+
+            <!-- 四大专项 -->
+            <h3 class="font-bold text-text-primary mb-3">专项模块</h3>
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="bg-surface rounded-card p-4 shadow-sm cursor-pointer" onclick="openModal('pronunciation-modal')">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-2"><i class="fas fa-volume-up"></i></div>
+                    <p class="font-semibold text-sm">发音训练</p>
+                    <p class="text-xs text-text-tertiary mt-1">进度 65%</p>
+                    <div class="w-full bg-gray-100 rounded-full h-1 mt-2"><div class="bg-blue-500 h-1 rounded-full" style="width: 65%"></div></div>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mb-2"><i class="fas fa-spell-check"></i></div>
+                    <p class="font-semibold text-sm">语法精修</p>
+                    <p class="text-xs text-text-tertiary mt-1">进度 80%</p>
+                    <div class="w-full bg-gray-100 rounded-full h-1 mt-2"><div class="bg-green-500 h-1 rounded-full" style="width: 80%"></div></div>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-2"><i class="fas fa-book"></i></div>
+                    <p class="font-semibold text-sm">词汇拓展</p>
+                    <p class="text-xs text-text-tertiary mt-1">进度 45%</p>
+                    <div class="w-full bg-gray-100 rounded-full h-1 mt-2"><div class="bg-purple-500 h-1 rounded-full" style="width: 45%"></div></div>
+                </div>
+                <div class="bg-surface rounded-card p-4 shadow-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mb-2"><i class="fas fa-brain"></i></div>
+                    <p class="font-semibold text-sm">逻辑构建</p>
+                    <p class="text-xs text-text-tertiary mt-1">进度 70%</p>
+                    <div class="w-full bg-gray-100 rounded-full h-1 mt-2"><div class="bg-orange-500 h-1 rounded-full" style="width: 70%"></div></div>
+                </div>
+            </div>
+
+            <!-- 每日一练 -->
+            <div class="bg-surface rounded-card p-5 shadow-sm mb-5">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-text-primary">每日一练</h3>
+                    <span class="text-xs bg-primary-light text-primary px-2 py-1 rounded-full">已连续 5 天</span>
+                </div>
+                <p class="text-sm text-text-secondary mb-3">用更学术的方式改写这句话："Many people think that technology is bad for our health."</p>
+                <button class="w-full py-3 bg-primary text-white rounded-btn font-medium text-sm ripple" onclick="openModal('daily-practice-modal')">开始答题</button>
+            </div>
+
+            <!-- 精品课程 -->
+            <div class="mb-24">
+                <h3 class="font-bold text-text-primary mb-3">精品课程</h3>
+                <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                    <div class="flex-shrink-0 w-40 bg-surface rounded-card shadow-sm overflow-hidden">
+                        <div class="h-24 bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center text-3xl">🎙️</div>
+                        <div class="p-3">
+                            <p class="text-sm font-semibold">雅思口语高分秘籍</p>
+                            <p class="text-xs text-text-tertiary mt-1">12 课时 · 1.2万人学习</p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 w-40 bg-surface rounded-card shadow-sm overflow-hidden">
+                        <div class="h-24 bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center text-3xl">✍️</div>
+                        <div class="p-3">
+                            <p class="text-sm font-semibold">学术写作进阶</p>
+                            <p class="text-xs text-text-tertiary mt-1">8 课时 · 8千人学习</p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 w-40 bg-surface rounded-card shadow-sm overflow-hidden">
+                        <div class="h-24 bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center text-3xl">🗣️</div>
+                        <div class="p-3">
+                            <p class="text-sm font-semibold">发音完美纠正</p>
+                            <p class="text-xs text-text-tertiary mt-1">15 课时 · 2万人学习</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 页面8：登录/注册 ==================== -->
+        <div id="page-login" class="page px-5 pt-10">
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center text-4xl mb-4 shadow-lg">🎓</div>
+                <h1 class="text-2xl font-bold text-text-primary">AI口语·作文教练</h1>
+                <p class="text-sm text-text-secondary mt-2">你的私人英语提分助手</p>
+            </div>
+
+            <!-- Tab切换 -->
+            <div class="flex bg-gray-100 rounded-input p-1 mb-6">
+                <button class="flex-1 py-2.5 rounded-full bg-white text-primary text-sm font-medium shadow-sm" id="login-tab" onclick="switchAuth('login')">登录</button>
+                <button class="flex-1 py-2.5 rounded-full text-text-secondary text-sm font-medium" id="register-tab" onclick="switchAuth('register')">注册</button>
+            </div>
+
+            <!-- 登录表单 -->
+            <div id="login-form" class="space-y-4">
+                <div>
+                    <label class="text-sm text-text-secondary mb-1 block">邮箱</label>
+                    <input type="email" value="alex@example.com" class="w-full bg-surface border border-gray-200 rounded-input px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                </div>
+                <div>
+                    <label class="text-sm text-text-secondary mb-1 block">密码</label>
+                    <input type="password" value="********" class="w-full bg-surface border border-gray-200 rounded-input px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                </div>
+                <button class="w-full py-3.5 bg-primary text-white rounded-btn font-medium ripple mt-2" onclick="navigateTo('home')">登录</button>
+                <p class="text-xs text-text-tertiary text-center">演示账号：alex@example.com / 任意密码</p>
+            </div>
+
+            <!-- 注册表单 -->
+            <div id="register-form" class="space-y-4 hidden">
+                <div>
+                    <label class="text-sm text-text-secondary mb-1 block">用户名</label>
+                    <input type="text" placeholder="设置用户名" class="w-full bg-surface border border-gray-200 rounded-input px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                </div>
+                <div>
+                    <label class="text-sm text-text-secondary mb-1 block">邮箱</label>
+                    <input type="email" placeholder="输入邮箱" class="w-full bg-surface border border-gray-200 rounded-input px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                </div>
+                <div>
+                    <label class="text-sm text-text-secondary mb-1 block">密码</label>
+                    <input type="password" placeholder="设置密码（至少6位）" class="w-full bg-surface border border-gray-200 rounded-input px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                </div>
+                <button class="w-full py-3.5 bg-primary text-white rounded-btn font-medium ripple mt-2">注册</button>
+            </div>
+        </div>
+
+        <!-- ==================== 底部导航栏 ==================== -->
+        <div class="tab-bar px-2 py-2">
+            <div class="flex justify-around items-center">
+                <button class="tab-item flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-all" data-page="home" onclick="navigateTo('home')">
+                    <i class="fas fa-home text-lg"></i>
+                    <span class="text-[10px] font-medium">首页</span>
+                </button>
+                <button class="tab-item flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-all" data-page="speak" onclick="navigateTo('speak')">
+                    <i class="fas fa-microphone text-lg"></i>
+                    <span class="text-[10px] font-medium">口语</span>
+                </button>
+                <button class="tab-item flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-all" data-page="write" onclick="navigateTo('write')">
+                    <i class="fas fa-pen text-lg"></i>
+                    <span class="text-[10px] font-medium">作文</span>
+                </button>
+                <button class="tab-item flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition-all" data-page="report" onclick="navigateTo('report')">
+                    <i class="fas fa-chart-bar text-lg"></i>
+                    <span class="text-[10px] font-medium">学习</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== 弹窗集合 ==================== -->
+
+        <!-- 评分详情弹窗 -->
+        <div class="modal" id="score-detail-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">评分详情</h3>
+                    <button onclick="closeModal('score-detail-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="text-center mb-5">
+                    <p class="text-4xl font-bold text-primary">7.5</p>
+                    <p class="text-sm text-text-secondary mt-1">综合评分</p>
+                </div>
+                <div class="space-y-4 mb-5">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span>发音准确性</span><span class="font-semibold">7.0</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 70%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span>语法复杂度</span><span class="font-semibold">8.0</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 80%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span>词汇多样性</span><span class="font-semibold">7.5</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: 75%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span>流利连贯度</span><span class="font-semibold">6.5</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-warning h-2 rounded-full" style="width: 65%"></div></div>
+                    </div>
+                </div>
+                <div class="bg-primary-light rounded-card p-4 mb-4">
+                    <p class="text-sm font-semibold text-primary mb-2">AI 建议</p>
+                    <p class="text-xs text-text-secondary leading-relaxed">你的语法基础扎实，但流利度还有提升空间。建议在回答时减少停顿，多使用连接词如 "Furthermore", "On the other hand" 来增强连贯性。</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">连接词丰富</span>
+                    <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">语法准确</span>
+                    <span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">需提升流利度</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 题目选择弹窗 -->
+        <div class="modal" id="topic-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">选择题目</h3>
+                    <button onclick="closeModal('topic-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="space-y-3">
+                    <div class="p-4 border-2 border-primary rounded-card bg-primary-light cursor-pointer">
+                        <div class="flex gap-2 mb-2">
+                            <span class="text-xs bg-primary text-white px-2 py-0.5 rounded">雅思</span>
+                            <span class="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">议论文</span>
+                        </div>
+                        <p class="text-sm font-medium text-text-primary">Some people think that the best way to reduce crime is to give longer prison sentences...</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-card cursor-pointer">
+                        <div class="flex gap-2 mb-2">
+                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">托福</span>
+                            <span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded">独立写作</span>
+                        </div>
+                        <p class="text-sm text-text-primary">Do you agree or disagree with the following statement? It is better to work in a team than alone...</p>
+                    </div>
+                    <div class="p-4 border border-gray-200 rounded-card cursor-pointer">
+                        <div class="flex gap-2 mb-2">
+                            <span class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">四六级</span>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">图表作文</span>
+                        </div>
+                        <p class="text-sm text-text-primary">The chart below shows the percentage of households in different income brackets...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错题本弹窗 -->
+        <div class="modal" id="error-book-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">错题本</h3>
+                    <button onclick="closeModal('error-book-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="space-y-3 mb-5">
+                    <div class="p-3 bg-red-50 rounded-btn border border-red-100">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">语法</span>
+                            <span class="text-xs text-text-tertiary">2026-05-15</span>
+                        </div>
+                        <p class="text-sm text-text-primary">主谓一致错误："The number of students are increasing"</p>
+                    </div>
+                    <div class="p-3 bg-orange-50 rounded-btn border border-orange-100">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">词汇</span>
+                            <span class="text-xs text-text-tertiary">2026-05-14</span>
+                        </div>
+                        <p class="text-sm text-text-primary">词性混淆："This is very importance" → "important"</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-btn border border-blue-100">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">逻辑</span>
+                            <span class="text-xs text-text-tertiary">2026-05-12</span>
+                        </div>
+                        <p class="text-sm text-text-primary">论证不充分：观点缺乏具体例子支撑</p>
+                    </div>
+                </div>
+                <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple">开始复习 (3道)</button>
+            </div>
+        </div>
+
+        <!-- 模考开始弹窗 -->
+        <div class="modal" id="exam-start-modal">
+            <div class="modal-content p-6">
+                <div class="text-center mb-5">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-primary-light flex items-center justify-center text-3xl mb-3">⏱️</div>
+                    <h3 class="font-bold text-lg">雅思口语模考</h3>
+                    <p class="text-sm text-text-secondary mt-1">时长 15 分钟 · 倒计时已启动</p>
+                </div>
+                <div class="bg-gray-50 rounded-card p-4 mb-4">
+                    <p class="text-sm font-semibold text-text-primary mb-2">Part 1: Introduction</p>
+                    <p class="text-sm text-text-secondary">Please tell me about your hometown. What do you like most about it?</p>
+                </div>
+                <div class="flex items-center justify-center gap-4 mb-5">
+                    <button class="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center text-xl shadow-lg ripple">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-text-tertiary text-center mb-4">点击按钮开始录音回答</p>
+                <button class="w-full py-3 border border-gray-200 text-text-secondary rounded-btn font-medium" onclick="closeModal('exam-start-modal')">取消模考</button>
+            </div>
+        </div>
+
+        <!-- 发音专项弹窗 -->
+        <div class="modal" id="pronunciation-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">发音训练</h3>
+                    <button onclick="closeModal('pronunciation-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="space-y-3 mb-5">
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fas fa-font"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold">音标入门</p>
+                                <p class="text-xs text-text-tertiary">12 个单元 · 进度 80%</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600"><i class="fas fa-link"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold">连读技巧</p>
+                                <p class="text-xs text-text-tertiary">8 个单元 · 进度 45%</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fas fa-wave-square"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold">语调训练</p>
+                                <p class="text-xs text-text-tertiary">6 个单元 · 进度 30%</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fas fa-mouth"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold">口型纠正</p>
+                                <p class="text-xs text-text-tertiary">10 个单元 · 进度 60%</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-text-tertiary text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 每日一练弹窗 -->
+        <div class="modal" id="daily-practice-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">每日一练</h3>
+                    <button onclick="closeModal('daily-practice-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="bg-primary-light rounded-card p-4 mb-4">
+                    <p class="text-sm font-semibold text-primary mb-2">题目</p>
+                    <p class="text-sm text-text-primary">用更学术的方式改写这句话："Many people think that technology is bad for our health."</p>
+                </div>
+                <div class="bg-orange-50 rounded-card p-4 mb-4">
+                    <p class="text-sm font-semibold text-orange-600 mb-2">💡 提示</p>
+                    <p class="text-xs text-orange-700">尝试使用 "It is widely believed that..." 或 "There is a growing consensus that..." 等学术表达。</p>
+                </div>
+                <textarea class="w-full h-24 bg-gray-50 rounded-btn p-3 text-sm outline-none resize-none mb-4" placeholder="在此输入你的答案..."></textarea>
+                <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple" onclick="closeModal('daily-practice-modal'); openModal('practice-result-modal')">提交答案</button>
+            </div>
+        </div>
+
+        <!-- 练习结果弹窗 -->
+        <div class="modal" id="practice-result-modal">
+            <div class="modal-content p-6">
+                <div class="text-center mb-5">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center text-3xl mb-3">🎉</div>
+                    <h3 class="font-bold text-lg">练习完成</h3>
+                    <p class="text-sm text-text-secondary mt-1">获得 20 积分</p>
+                </div>
+                <div class="bg-surface rounded-card p-4 mb-4">
+                    <p class="text-sm font-semibold text-text-primary mb-2">参考答案</p>
+                    <p class="text-sm text-text-secondary leading-relaxed">"There is a widespread belief that the proliferation of technology has detrimental effects on human health."</p>
+                </div>
+                <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple" onclick="closeModal('practice-result-modal')">继续学习</button>
+            </div>
+        </div>
+
+        <!-- 学习目标弹窗 -->
+        <div class="modal" id="goal-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">学习目标</h3>
+                    <button onclick="closeModal('goal-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-text-secondary mb-1 block">目标考试</label>
+                        <select class="w-full bg-surface border border-gray-200 rounded-btn px-4 py-3 text-sm outline-none">
+                            <option>雅思 IELTS</option>
+                            <option>托福 TOEFL</option>
+                            <option>四六级 CET</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-text-secondary mb-1 block">目标分数</label>
+                        <input type="text" value="7.0" class="w-full bg-surface border border-gray-200 rounded-btn px-4 py-3 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="text-sm text-text-secondary mb-1 block">每日学习时长（分钟）</label>
+                        <input type="number" value="30" class="w-full bg-surface border border-gray-200 rounded-btn px-4 py-3 text-sm outline-none">
+                    </div>
+                    <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple mt-2">保存目标</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 邀请好友弹窗 -->
+        <div class="modal" id="invite-modal">
+            <div class="modal-content p-6">
+                <div class="text-center mb-5">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center text-3xl mb-3">🎁</div>
+                    <h3 class="font-bold text-lg">邀请好友</h3>
+                    <p class="text-sm text-text-secondary mt-1">邀请成功双方各得 7 天 VIP</p>
+                </div>
+                <div class="bg-primary-light rounded-card p-4 mb-4">
+                    <p class="text-xs text-primary mb-1">你的邀请码</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xl font-bold text-primary tracking-widest">ALEX2026</p>
+                        <button class="text-sm text-primary font-medium">复制</button>
+                    </div>
+                </div>
+                <button class="w-full py-3 bg-primary text-white rounded-btn font-medium ripple mb-3">复制邀请链接</button>
+                <button class="w-full py-3 border border-gray-200 text-text-secondary rounded-btn font-medium" onclick="closeModal('invite-modal')">关闭</button>
+            </div>
+        </div>
+
+        <!-- 设置弹窗 -->
+        <div class="modal" id="settings-modal">
+            <div class="modal-content p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">设置</h3>
+                    <button onclick="closeModal('settings-modal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn">
+                        <span class="text-sm text-text-primary">深色模式</span>
+                        <div class="w-11 h-6 bg-gray-200 rounded-full relative cursor-pointer">
+                            <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn">
+                        <span class="text-sm text-text-primary">AI 语音反馈</span>
+                        <div class="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
+                            <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5 shadow-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn">
+                        <span class="text-sm text-text-primary">界面语言</span>
+                        <span class="text-sm text-text-secondary">简体中文</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-btn">
+                        <span class="text-sm text-text-primary">字体大小</span>
+                        <span class="text-sm text-text-secondary">标准</span>
+                    </div>
+                    <button class="w-full py-3 bg-red-50 text-red-500 rounded-btn font-medium text-sm">清除缓存</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 路由管理
+        function navigateTo(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageName).classList.add('active');
+
+            // 更新TabBar高亮
+            document.querySelectorAll('.tab-item').forEach(tab => {
+                if (tab.dataset.page === pageName) {
+                    tab.classList.add('text-primary');
+                    tab.classList.remove('text-text-secondary');
+                } else {
+                    tab.classList.remove('text-primary');
+                    tab.classList.add('text-text-secondary');
+                }
+            });
+
+            // 特殊页面不需要tabbar高亮
+            if (['profile', 'exam', 'improve', 'login'].includes(pageName)) {
+                document.querySelectorAll('.tab-item').forEach(tab => {
+                    tab.classList.remove('text-primary');
+                    tab.classList.add('text-text-secondary');
+                });
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        // 弹窗管理
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // 点击弹窗背景关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal(modal.id);
+            });
+        });
+
+        // 场景标签切换
+        document.querySelectorAll('.scene-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                document.querySelectorAll('.scene-tag').forEach(t => {
+                    t.classList.remove('bg-primary', 'text-white');
+                    t.classList.add('bg-white', 'text-text-secondary', 'border', 'border-gray-200');
+                });
+                this.classList.remove('bg-white', 'text-text-secondary', 'border', 'border-gray-200');
+                this.classList.add('bg-primary', 'text-white');
+            });
+        });
+
+        // 登录注册切换
+        function switchAuth(type) {
+            if (type === 'login') {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('login-tab').classList.add('bg-white', 'text-primary', 'shadow-sm');
+                document.getElementById('login-tab').classList.remove('text-text-secondary');
+                document.getElementById('register-tab').classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                document.getElementById('register-tab').classList.add('text-text-secondary');
+            } else {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+                document.getElementById('register-tab').classList.add('bg-white', 'text-primary', 'shadow-sm');
+                document.getElementById('register-tab').classList.remove('text-text-secondary');
+                document.getElementById('login-tab').classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                document.getElementById('login-tab').classList.add('text-text-secondary');
+            }
+        }
+
+        // 考试类型选择
+        function selectExam(el) {
+            document.querySelectorAll('#page-exam .grid > div').forEach(div => {
+                div.classList.remove('border-primary');
+                div.classList.add('border-transparent');
+            });
+            el.classList.remove('border-transparent');
+            el.classList.add('border-primary');
+        }
+
+        // 生成打卡记录
+        function generateCheckin() {
+            const container = document.getElementById('checkin-container');
+            const days = ['5/5', '5/6', '5/7', '5/8', '5/9', '5/10', '5/11', '5/12', '5/13', '5/14', '5/15', '5/16', '5/17', '今日'];
+            const statuses = [1,1,1,1,1,1,1,1,1,1,1,1,0,2]; // 1=已打卡, 0=未打卡, 2=今日
+
+            days.forEach((day, i) => {
+                const status = statuses[i];
+                let color = status === 1 ? 'bg-primary' : status === 2 ? 'bg-warning' : 'bg-gray-200';
+                let height = status === 0 ? 'h-6' : 'h-8';
+
+                const div = document.createElement('div');
+                div.className = 'flex flex-col items-center gap-1 flex-1';
+                div.innerHTML = `
+                    <div class="w-6 ${height} ${color} rounded-full transition-all"></div>
+                    <span class="text-[10px] text-text-tertiary">${day}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+        generateCheckin();
+
+        // 时间切换
+        document.querySelectorAll('.time-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.time-tab').forEach(t => {
+                    t.classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                    t.classList.add('text-text-secondary');
+                });
+                this.classList.add('bg-white', 'text-primary', 'shadow-sm');
+                this.classList.remove('text-text-secondary');
+            });
+        });
+
+        // 批改模式切换
+        document.getElementById('mode-quick').addEventListener('click', function() {
+            this.classList.add('bg-white', 'text-primary', 'shadow-sm');
+            this.classList.remove('text-text-secondary');
+            document.getElementById('mode-deep').classList.remove('bg-white', 'text-primary', 'shadow-sm');
+            document.getElementById('mode-deep').classList.add('text-text-secondary');
+        });
+        document.getElementById('mode-deep').addEventListener('click', function() {
+            this.classList.add('bg-white', 'text-primary', 'shadow-sm');
+            this.classList.remove('text-text-secondary');
+            document.getElementById('mode-quick').classList.remove('bg-white', 'text-primary', 'shadow-sm');
+            document.getElementById('mode-quick').classList.add('text-text-secondary');
+        });
+
+        // 时钟更新
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clock').textContent = hours + ':' + minutes;
+        }
+        updateClock();
+        setInterval(updateClock, 60000);
+
+        // 初始化TabBar状态
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            if (tab.dataset.page === 'home') {
+                tab.classList.add('text-primary');
+            } else {
+                tab.classList.add('text-text-secondary');
+            }
+        });
+    </script>
+</body>
+</html>
