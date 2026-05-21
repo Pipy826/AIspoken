@@ -109,6 +109,7 @@ async def ocr_image(
     """使用 AI 识别图片中的题目文字"""
     from ..ai_service import get_client, require_ai
     from ..config import settings
+    from openai import APITimeoutError, APIConnectionError
     import json
 
     require_ai()
@@ -158,4 +159,6 @@ async def ocr_image(
                 status_code=400,
                 detail="当前 AI 模型不支持图片识别，请手动输入题目"
             )
+        if isinstance(e, (APITimeoutError, APIConnectionError)):
+            raise HTTPException(status_code=503, detail="AI 服务请求超时，请稍后重试")
         raise HTTPException(status_code=500, detail=f"OCR 识别失败：{error_msg}")

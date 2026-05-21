@@ -101,29 +101,34 @@ async def voice_chat(
     reset_daily_quota_if_needed(db, current_user)
 
     # 确定用户说的话
-    user_text = transcript.strip()
+    user_text = ""
 
-    if not user_text and audio:
-        # 用本地 Whisper 模型识别
+    if audio:
+        # 使用后端 Whisper 模型识别语音
         audio_bytes = await audio.read()
         if not audio_bytes:
             raise HTTPException(status_code=400, detail="音频文件为空")
         try:
             from ..stt_service import transcribe_audio, is_model_available
             if not is_model_available():
-                raise HTTPException(
-                    status_code=503,
-                    detail="语音识别模型未安装。请下载模型文件到 backend/models/whisper-small/ 目录。"
-                )
-            stt_result = transcribe_audio(audio_bytes, language="en")
+                raise HTTPException(status_code=503, detail="语音识别模型未安装，请联系管理员")
+            stt_result = transcribe_audio(audio_bytes, language="")
+            detected_lang = stt_result.get("language", "")
             user_text = stt_result.get("text", "").strip()
+            # 检测到非英文时提示用户说英文
+            if user_text and detected_lang != "en":
+                raise HTTPException(status_code=400, detail="请说英文哦～Please speak in English!")
         except HTTPException:
             raise
         except Exception as e:
+            print(f"[voice-chat] Whisper 识别失败: {e}")
             raise HTTPException(status_code=500, detail=f"语音识别失败：{str(e)}")
+    elif transcript.strip():
+        # 兼容文本直传模式（APP 端可能自带 STT）
+        user_text = transcript.strip()
 
     if not user_text:
-        raise HTTPException(status_code=400, detail="未识别到语音内容，请重新录音")
+        raise HTTPException(status_code=400, detail="未识别到语音内容，请说话声音大一些或录音时间长一些再试")
 
     # 构建对话历史并调用 AI
     try:
@@ -159,7 +164,8 @@ async def voice_chat(
     try:
         audio_reply = await text_to_speech(result.reply, scene)
         audio_b64 = base64.b64encode(audio_reply).decode("utf-8") if audio_reply else ""
-    except Exception:
+    except Exception as e:
+        print(f"[voice-chat] TTS 失败: {e}")
         audio_b64 = ""
 
     return {

@@ -41,3 +41,17 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+async def preload_whisper():
+    """预加载 Whisper 模型，避免首次请求超时"""
+    try:
+        from .stt_service import is_model_available, get_model
+        if is_model_available():
+            import asyncio
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, get_model)
+            print("[startup] Whisper 模型预加载完成")
+    except Exception as e:
+        print(f"[startup] Whisper 模型预加载失败（不影响运行）: {e}")

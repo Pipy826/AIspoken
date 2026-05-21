@@ -8,6 +8,7 @@ from ..database import get_db
 from ..ai_service import AIUnavailableError, get_client, require_ai
 from ..config import settings
 from ..stats_service import aggregate_radar_and_scores, record_study_session
+from openai import APITimeoutError, APIConnectionError
 import json
 
 router = APIRouter(prefix="/api/improve", tags=["专项提升"])
@@ -254,6 +255,8 @@ async def submit_exercise(
         result = json.loads(resp.choices[0].message.content or "{}")
     except AIUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    except (APITimeoutError, APIConnectionError) as e:
+        raise HTTPException(status_code=503, detail=f"AI 服务请求超时，请稍后重试：{e}")
     except Exception:
         result = {"correct": True, "score": 7, "feedback": "答案已提交", "reference": answer}
 
@@ -308,6 +311,8 @@ async def submit_daily(
         result = json.loads(resp.choices[0].message.content or "{}")
     except AIUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    except (APITimeoutError, APIConnectionError) as e:
+        raise HTTPException(status_code=503, detail=f"AI 服务请求超时，请稍后重试：{e}")
     except Exception:
         result = {"correct": True, "score": 7, "feedback": "答案已提交", "reference": answer}
 

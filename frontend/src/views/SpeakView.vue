@@ -131,11 +131,8 @@
               试听
             </button>
           </div>
-          <div v-if="recognizedText" style="font-size:13px;color:var(--text-main);margin-bottom:8px;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid var(--border-light);">
-            "{{ recognizedText }}"
-          </div>
-          <div v-else style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">
-            录音已完成，点击发送由 AI 识别
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">
+            录音已完成（{{ pendingDuration }}秒），点击发送由 AI 识别
           </div>
           <div style="display:flex;gap:8px;">
             <button style="flex:1;padding:8px;border:1px solid var(--border-light);border-radius:20px;background:#fff;font-size:13px;color:var(--text-secondary);cursor:pointer;" @click="cancelPending">取消</button>
@@ -210,7 +207,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { showToast } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { useSpeakStore } from '@/stores/speak'
 import { speakApi } from '@/api'
 
@@ -226,7 +223,6 @@ const isProcessing = ref(false)
 const isPlayingAudio = ref(false)
 const playingMsgId = ref(null)
 const recordingTime = ref(0)
-const recognizedText = ref('')
 const pendingAudio = ref(null)  // 录音完成后待确认的 Blob
 const pendingDuration = ref(0)
 
@@ -234,7 +230,6 @@ let mediaRecorder = null
 let audioChunks = []
 let recordingTimer = null
 let currentAudio = null
-let speechRecognition = null
 
 const currentSceneLabel = computed(() => {
   const s = store.scenes.find(s => s.id === store.scene)
@@ -291,7 +286,6 @@ async function startRecording() {
     mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMimeType() })
     audioChunks = []
     recordingTime.value = 0
-    recognizedText.value = ''
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunks.push(e.data)
@@ -300,53 +294,20 @@ async function startRecording() {
     mediaRecorder.onstop = () => {
       stream.getTracks().forEach(t => t.stop())
       clearInterval(recordingTimer)
-      stopSpeechRecognition()
       const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType })
-      if (blob.size > 0) {
-        // 不直接发送，进入确认状态
+      if (blob.size > 0 && recordingTime.value >= 2) {
         pendingAudio.value = blob
         pendingDuration.value = recordingTime.value
+      } else if (recordingTime.value < 2) {
+        showDialog({ title: '提示', message: '录音时间太短，请至少说 2 秒', confirmButtonText: '知道了' })
       }
     }
 
     mediaRecorder.start(100)
     isRecording.value = true
     recordingTimer = setInterval(() => { recordingTime.value++ }, 1000)
-
-    // 同时启动浏览器语音识别（静默获取文本）
-    startSpeechRecognition()
   } catch (err) {
     showToast('无法访问麦克风，请检查权限')
-  }
-}
-
-function startSpeechRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-  if (!SpeechRecognition) return
-
-  speechRecognition = new SpeechRecognition()
-  speechRecognition.lang = 'en-US'
-  speechRecognition.continuous = true
-  speechRecognition.interimResults = true
-
-  speechRecognition.onresult = (event) => {
-    let finalText = ''
-    for (let i = 0; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalText += event.results[i][0].transcript
-      }
-    }
-    if (finalText) recognizedText.value = finalText.trim()
-  }
-
-  speechRecognition.onerror = () => { /* 静默失败 */ }
-  try { speechRecognition.start() } catch { /* ignore */ }
-}
-
-function stopSpeechRecognition() {
-  if (speechRecognition) {
-    try { speechRecognition.stop() } catch { /* ignore */ }
-    speechRecognition = null
   }
 }
 
@@ -370,12 +331,15 @@ function getSupportedMimeType() {
 function cancelPending() {
   pendingAudio.value = null
   pendingDuration.value = 0
-  recognizedText.value = ''
   stopAudio()
 }
 
 function confirmSend() {
   if (!pendingAudio.value) return
+  if (pendingDuration.value < 2) {
+    showDialog({ title: '提示', message: '录音时间太短，请至少录制 2 秒', confirmButtonText: '知道了' })
+    return
+  }
   const blob = pendingAudio.value
   pendingAudio.value = null
   pendingDuration.value = 0
@@ -435,7 +399,7 @@ async function sendVoiceMessage(audioBlob) {
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role, content: m.content }))
 
-    // 发送到后端（始终发送音频文件，由后端 Whisper 识别）
+    // 发送到后端（由后端 Whisper 识别）
     const formData = new FormData()
     formData.append('audio', audioBlob, 'recording.webm')
     formData.append('scene', store.scene)
@@ -469,13 +433,13 @@ async function sendVoiceMessage(audioBlob) {
     // 自动保存对话
     store.saveCurrentConversation()
   } catch (err) {
-    showToast(typeof err === 'string' ? err : '语音处理失败，请重试')
+    const msg = typeof err === 'string' ? err : '语音处理失败，请重试'
+    showDialog({ title: '提示', message: msg, confirmButtonText: '知道了' })
     // 移除占位消息
     const idx = store.messages.findIndex(m => m.content === '🎤 语音消息...')
     if (idx >= 0) store.messages.splice(idx, 1)
   } finally {
     isProcessing.value = false
-    recognizedText.value = ''
   }
 }
 
@@ -591,7 +555,13 @@ watch(() => store.messages.length, scrollToBottom)
 
 onMounted(async () => {
   await store.loadScenes()
-  // 加载当前场景最近的对话
+  // 如果 store 中已有对话消息（从上次浏览保留），直接恢复
+  if (store.messages.length > 1 || store.conversationId) {
+    // 仍然刷新对话列表（后台），但不切换当前对话
+    store.loadSceneConversations()
+    return
+  }
+  // 首次进入：加载当前场景最近的对话
   await store.loadSceneConversations()
   if (store.conversations.length > 0) {
     await store.loadConversation(store.conversations[0].id)
@@ -603,7 +573,6 @@ onMounted(async () => {
 onUnmounted(() => {
   stopAudio()
   if (isRecording.value) stopRecording()
-  stopSpeechRecognition()
 })
 </script>
 

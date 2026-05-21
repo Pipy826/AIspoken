@@ -5,7 +5,7 @@ AI 服务层 —— 调用 OpenAI 兼容接口。
 import json
 from typing import List, Optional
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
 
 from .config import settings
 from .schemas import (
@@ -33,6 +33,7 @@ def get_client() -> AsyncOpenAI:
         _client = AsyncOpenAI(
             api_key=settings.OPENAI_API_KEY.strip(),
             base_url=settings.OPENAI_BASE_URL,
+            timeout=60.0,
         )
     return _client
 
@@ -82,13 +83,16 @@ async def chat_speak(scene: str, messages: list) -> SpeakResponse:
     for m in messages[-12:]:
         openai_msgs.append({"role": m["role"], "content": m["content"]})
 
-    resp = await get_client().chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=openai_msgs,
-        temperature=0.75,
-        max_tokens=900,
-        response_format={"type": "json_object"},
-    )
+    try:
+        resp = await get_client().chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=openai_msgs,
+            temperature=0.75,
+            max_tokens=900,
+            response_format={"type": "json_object"},
+        )
+    except (APITimeoutError, APIConnectionError) as e:
+        raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
     raw = resp.choices[0].message.content or "{}"
     try:
         data = json.loads(raw)
@@ -138,16 +142,19 @@ async def correct_essay(topic: str, essay: str, mode: str) -> WriteResponse:
     mode_label = "快速（重点指出主要问题）" if mode == "quick" else "深度（逐句分析，全面详尽）"
     prompt = f"题目：{topic}\n\n学生作文：\n{essay}"
 
-    resp = await get_client().chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": WRITE_SYSTEM.format(mode=mode_label)},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.25,
-        max_tokens=4000,
-        response_format={"type": "json_object"},
-    )
+    try:
+        resp = await get_client().chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": WRITE_SYSTEM.format(mode=mode_label)},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.25,
+            max_tokens=4000,
+            response_format={"type": "json_object"},
+        )
+    except (APITimeoutError, APIConnectionError) as e:
+        raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
     raw = resp.choices[0].message.content or "{}"
     try:
         data = json.loads(raw)
@@ -170,22 +177,25 @@ async def correct_essay(topic: str, essay: str, mode: str) -> WriteResponse:
 # ── 模考评分 ──────────────────────────────────────────
 async def evaluate_exam(exam_type: str, transcript: Optional[str]) -> ExamResultResponse:
     require_ai()
-    resp = await get_client().chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "你是英语口语考官。根据转写文本从发音、语法、流利度、整体表现打分。"
-                    "只输出 JSON："
-                    '{"overall":0-9,"pronunciation":0-9,"grammar":0-9,"fluency":0-9,"comment":"中文+英文简短点评"}'
-                ),
-            },
-            {"role": "user", "content": f"考试类型：{exam_type}\n\n转写：\n{(transcript or '').strip()}"},
-        ],
-        temperature=0.2,
-        max_tokens=500,
-        response_format={"type": "json_object"},
-    )
+    try:
+        resp = await get_client().chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "你是英语口语考官。根据转写文本从发音、语法、流利度、整体表现打分。"
+                        "只输出 JSON："
+                        '{"overall":0-9,"pronunciation":0-9,"grammar":0-9,"fluency":0-9,"comment":"中文+英文简短点评"}'
+                    ),
+                },
+                {"role": "user", "content": f"考试类型：{exam_type}\n\n转写：\n{(transcript or '').strip()}"},
+            ],
+            temperature=0.2,
+            max_tokens=500,
+            response_format={"type": "json_object"},
+        )
+    except (APITimeoutError, APIConnectionError) as e:
+        raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
     data = json.loads(resp.choices[0].message.content or "{}")
     return ExamResultResponse(**data)

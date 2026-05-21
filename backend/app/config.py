@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -7,7 +9,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
 
-    DATABASE_URL: str = "sqlite:///./ai_coach.db"
+    DATABASE_URL: str = f"sqlite:///{Path(__file__).resolve().parent.parent / 'ai_coach.db'}"
 
     OPENAI_API_KEY: str = "sk-placeholder"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
@@ -36,7 +38,7 @@ class Settings(BaseSettings):
         return True
 
     class Config:
-        env_file = ".env"
+        env_file = str(Path(__file__).resolve().parent.parent / ".env")
         extra = "ignore"
 
 

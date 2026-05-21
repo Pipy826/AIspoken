@@ -70,9 +70,10 @@ def transcribe_audio(audio_bytes: bytes, language: str = "en") -> dict:
     try:
         segments, info = model.transcribe(
             tmp_path,
-            language=language,
+            language=language if language else None,
             beam_size=5,
-            vad_filter=True,  # 过滤静音段
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=300),
         )
         
         result_segments = []
