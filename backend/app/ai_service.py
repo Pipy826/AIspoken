@@ -3,6 +3,7 @@ AI 服务层 —— 调用 OpenAI 兼容接口。
 未在 .env 中配置有效 OPENAI_API_KEY 时抛出 AIUnavailableError（由路由返回 503）。
 """
 import json
+import re
 from typing import List, Optional
 
 from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
@@ -97,7 +98,24 @@ async def chat_speak(scene: str, messages: list) -> SpeakResponse:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        raise AIUnavailableError("模型返回非 JSON，请重试")
+        # 尝试提取 markdown 代码块中的 JSON
+        match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", raw, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group(1))
+            except json.JSONDecodeError:
+                raise AIUnavailableError("模型返回非 JSON，请重试")
+        else:
+            # 尝试找到第一个 { 和最后一个 } 之间的内容
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    data = json.loads(raw[start:end + 1])
+                except json.JSONDecodeError:
+                    raise AIUnavailableError("模型返回非 JSON，请重试")
+            else:
+                raise AIUnavailableError("模型返回非 JSON，请重试")
 
     reply = (data.get("reply") or "").strip() or "I'm here — could you say that again?"
     tip = data.get("tip")
@@ -158,8 +176,24 @@ async def correct_essay(topic: str, essay: str, mode: str) -> WriteResponse:
     raw = resp.choices[0].message.content or "{}"
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise AIUnavailableError(f"模型返回无效 JSON：{e}") from e
+    except json.JSONDecodeError:
+        # 尝试提取 markdown 代码块中的 JSON
+        match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", raw, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group(1))
+            except json.JSONDecodeError as e:
+                raise AIUnavailableError(f"模型返回无效 JSON：{e}") from e
+        else:
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    data = json.loads(raw[start:end + 1])
+                except json.JSONDecodeError as e:
+                    raise AIUnavailableError(f"模型返回无效 JSON：{e}") from e
+            else:
+                raise AIUnavailableError(f"模型返回无效 JSON")
 
     data.setdefault("grading_levels", [])
     # 为必需字段提供默认值，防止 Pydantic 验证失败

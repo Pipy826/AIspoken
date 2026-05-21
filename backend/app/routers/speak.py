@@ -112,7 +112,10 @@ async def voice_chat(
             from ..stt_service import transcribe_audio, is_model_available
             if not is_model_available():
                 raise HTTPException(status_code=503, detail="语音识别模型未安装，请联系管理员")
-            stt_result = transcribe_audio(audio_bytes, language="")
+            # 根据文件名或 content_type 确定后缀
+            content_type = audio.content_type or ""
+            filename = audio.filename or ""
+            stt_result = transcribe_audio(audio_bytes, language="", content_type=content_type, filename=filename)
             detected_lang = stt_result.get("language", "")
             user_text = stt_result.get("text", "").strip()
             # 检测到非英文时提示用户说英文

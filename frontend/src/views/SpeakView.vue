@@ -401,7 +401,10 @@ async function sendVoiceMessage(audioBlob) {
 
     // 发送到后端（由后端 Whisper 识别）
     const formData = new FormData()
-    formData.append('audio', audioBlob, 'recording.webm')
+    // 根据实际录音格式设置正确的文件扩展名
+    const mimeType = audioBlob.type || 'audio/webm'
+    const ext = mimeType.includes('mp4') ? '.mp4' : mimeType.includes('ogg') ? '.ogg' : '.webm'
+    formData.append('audio', audioBlob, `recording${ext}`)
     formData.append('scene', store.scene)
     formData.append('history', JSON.stringify(history))
 
