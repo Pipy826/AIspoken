@@ -23,6 +23,12 @@ frontend/dist/
 # Models (large files)
 backend/models/whisper-small/model.bin
 
+# SSL certificates (generated on server)
+docker/ssl/
+
 # OS files
 .DS_Store
 Thumbs.db
+
+# Archives
+*.tar.gz

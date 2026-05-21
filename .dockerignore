@@ -11,3 +11,4 @@ backend/ai_coach.db
 ai_coach.db
 .git
 *.tar.gz
+docker/ssl

@@ -6,7 +6,7 @@ import json
 import re
 from typing import List, Optional
 
-from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
+from openai import AsyncOpenAI, APITimeoutError, APIConnectionError, AuthenticationError, APIStatusError
 
 from .config import settings
 from .schemas import (
@@ -16,6 +16,7 @@ from .schemas import (
 )
 
 _client: Optional[AsyncOpenAI] = None
+_client_api_key: Optional[str] = None
 
 
 class AIUnavailableError(Exception):
@@ -29,18 +30,35 @@ class AIUnavailableError(Exception):
 
 
 def get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
+    """获取 OpenAI 客户端，当 .env 中的 Key 变化时自动重建"""
+    global _client, _client_api_key
+    # 每次重新读取配置，检测 Key 是否变化
+    from .config import Settings
+    current_settings = Settings()
+    current_key = current_settings.OPENAI_API_KEY.strip()
+
+    if _client is None or current_key != _client_api_key:
         _client = AsyncOpenAI(
-            api_key=settings.OPENAI_API_KEY.strip(),
-            base_url=settings.OPENAI_BASE_URL,
+            api_key=current_key,
+            base_url=current_settings.OPENAI_BASE_URL,
             timeout=60.0,
         )
+        _client_api_key = current_key
     return _client
 
 
+def reset_client():
+    """强制重置客户端（认证失败时调用）"""
+    global _client, _client_api_key
+    _client = None
+    _client_api_key = None
+
+
 def require_ai() -> None:
-    if not settings.openai_key_configured():
+    """检查 AI 是否可用（每次重新读取 .env，支持热更新 Key）"""
+    from .config import Settings
+    current_settings = Settings()
+    if not current_settings.openai_key_configured():
         raise AIUnavailableError()
 
 
@@ -92,8 +110,13 @@ async def chat_speak(scene: str, messages: list) -> SpeakResponse:
             max_tokens=900,
             response_format={"type": "json_object"},
         )
+    except AuthenticationError as e:
+        reset_client()
+        raise AIUnavailableError("API Key 无效或已过期，请在 backend/.env 中更新 OPENAI_API_KEY 并重试") from e
     except (APITimeoutError, APIConnectionError) as e:
         raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
+    except APIStatusError as e:
+        raise AIUnavailableError(f"AI 服务返回错误（{e.status_code}）：{e.message}") from e
     raw = resp.choices[0].message.content or "{}"
     try:
         data = json.loads(raw)
@@ -171,8 +194,13 @@ async def correct_essay(topic: str, essay: str, mode: str) -> WriteResponse:
             max_tokens=4000,
             response_format={"type": "json_object"},
         )
+    except AuthenticationError as e:
+        reset_client()
+        raise AIUnavailableError("API Key 无效或已过期，请在 backend/.env 中更新 OPENAI_API_KEY 并重试") from e
     except (APITimeoutError, APIConnectionError) as e:
         raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
+    except APIStatusError as e:
+        raise AIUnavailableError(f"AI 服务返回错误（{e.status_code}）：{e.message}") from e
     raw = resp.choices[0].message.content or "{}"
     try:
         data = json.loads(raw)
@@ -229,7 +257,12 @@ async def evaluate_exam(exam_type: str, transcript: Optional[str]) -> ExamResult
             max_tokens=500,
             response_format={"type": "json_object"},
         )
+    except AuthenticationError as e:
+        reset_client()
+        raise AIUnavailableError("API Key 无效或已过期，请在 backend/.env 中更新 OPENAI_API_KEY 并重试") from e
     except (APITimeoutError, APIConnectionError) as e:
         raise AIUnavailableError(f"AI 服务请求超时或连接失败，请稍后重试：{e}") from e
+    except APIStatusError as e:
+        raise AIUnavailableError(f"AI 服务返回错误（{e.status_code}）：{e.message}") from e
     data = json.loads(resp.choices[0].message.content or "{}")
     return ExamResultResponse(**data)
